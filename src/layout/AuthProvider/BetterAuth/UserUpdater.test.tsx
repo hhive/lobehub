@@ -111,4 +111,12 @@ describe('UserUpdater', () => {
 
     expect(useUserStore.getState().user).toBeUndefined();
   });
+
+  it('syncs the better-auth user role into the user store', () => {
+    useSessionMock.mockReturnValue(sampleSession({ role: 'admin' }));
+
+    render(<UserUpdater />);
+
+    expect(useUserStore.getState().user?.role).toBe('admin');
+  });
 });

@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 
 import { type MenuProps } from '@/components/Menu';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 import { DiscoverTab } from '@/types/discover';
 
 const ICON_SIZE = 16;
@@ -14,6 +16,7 @@ const ICON_SIZE = 16;
 export const useNav = () => {
   const location = useLocation();
   const { t } = useTranslation('discover');
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const activeKey = useMemo(() => {
     const pathname = location.pathname;
     for (const value of Object.values(DiscoverTab)) {
@@ -45,18 +48,22 @@ export const useNav = () => {
           <div style={{ color: 'inherit', display: 'inline' }}>{`MCP ${t('tab.plugin')}`}</div>
         ),
       },
-      {
-        icon: <Icon icon={Brain} size={ICON_SIZE} />,
-        key: DiscoverTab.Models,
-        label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.model')}</div>,
-      },
-      {
-        icon: <Icon icon={BrainCircuit} size={ICON_SIZE} />,
-        key: DiscoverTab.Providers,
-        label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.provider')}</div>,
-      },
+      ...(isAdmin
+        ? [
+            {
+              icon: <Icon icon={Brain} size={ICON_SIZE} />,
+              key: DiscoverTab.Models,
+              label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.model')}</div>,
+            },
+            {
+              icon: <Icon icon={BrainCircuit} size={ICON_SIZE} />,
+              key: DiscoverTab.Providers,
+              label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.provider')}</div>,
+            },
+          ]
+        : []),
     ],
-    [t],
+    [isAdmin, t],
   );
 
   const activeItem = items.find((item: any) => item.key === activeKey) as {

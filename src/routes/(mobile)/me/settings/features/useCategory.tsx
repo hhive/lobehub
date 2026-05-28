@@ -28,6 +28,7 @@ import {
   useServerConfigStore,
 } from '@/store/serverConfig';
 import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 import { userGeneralSettingsSelectors } from '@/store/user/slices/settings/selectors';
 
 export enum SettingsGroupKey {
@@ -52,6 +53,7 @@ export const useCategory = (): CategoryGroup[] => {
   const { t } = useTranslation(['setting', 'auth', 'subscription']);
   const { hideDocs, showApiKeyManage, showProvider } = useServerConfigStore(featureFlagsSelectors);
   const enableBusinessFeatures = useServerConfigStore(serverConfigSelectors.enableBusinessFeatures);
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const isDevMode = useUserStore((s) => userGeneralSettingsSelectors.config(s).isDevMode);
 
   return useMemo(() => {
@@ -102,31 +104,41 @@ export const useCategory = (): CategoryGroup[] => {
     const agent: CategoryItem[] = [
       // Provider settings should not depend on Advanced tools: new users may need
       // non-LobeHub providers, and desktop users often bring their own API keys.
-      showProvider &&
+      isAdmin &&
+        showProvider &&
         makeItem({ icon: Brain, key: SettingsTabs.Provider, label: t('setting:tab.provider') }),
-      makeItem({
-        icon: Sparkles,
-        key: SettingsTabs.ServiceModel,
-        label: t('setting:tab.serviceModel'),
-      }),
+      isAdmin &&
+        makeItem({
+          icon: Sparkles,
+          key: SettingsTabs.ServiceModel,
+          label: t('setting:tab.serviceModel'),
+        }),
       makeItem({ icon: SkillsIcon, key: SettingsTabs.Skill, label: t('setting:tab.skill') }),
       makeItem({ icon: BrainCircuit, key: SettingsTabs.Memory, label: t('setting:tab.memory') }),
-      makeItem({ icon: KeyRound, key: SettingsTabs.Creds, label: t('setting:tab.creds') }),
+      isAdmin &&
+        makeItem({ icon: KeyRound, key: SettingsTabs.Creds, label: t('setting:tab.creds') }),
       showApiKeyManage &&
         makeItem({ icon: KeyIcon, key: SettingsTabs.APIKey, label: t('auth:tab.apikey') }),
     ].filter((item): item is CategoryItem => Boolean(item));
 
-    const system: CategoryItem[] = [
-      makeItem({ icon: Database, key: SettingsTabs.Storage, label: t('setting:tab.storage') }),
-      isDevMode &&
-        makeItem({ icon: KeyIcon, key: SettingsTabs.APIKey, label: t('auth:tab.apikey') }),
-      makeItem({
-        icon: EllipsisIcon,
-        key: SettingsTabs.Advanced,
-        label: t('setting:tab.advanced'),
-      }),
-      !hideDocs && makeItem({ icon: Info, key: SettingsTabs.About, label: t('setting:tab.about') }),
-    ].filter((item): item is CategoryItem => Boolean(item));
+    const system: CategoryItem[] = isAdmin
+      ? [
+          makeItem({
+            icon: Database,
+            key: SettingsTabs.Storage,
+            label: t('setting:tab.storage'),
+          }),
+          isDevMode &&
+            makeItem({ icon: KeyIcon, key: SettingsTabs.APIKey, label: t('auth:tab.apikey') }),
+          makeItem({
+            icon: EllipsisIcon,
+            key: SettingsTabs.Advanced,
+            label: t('setting:tab.advanced'),
+          }),
+          !hideDocs &&
+            makeItem({ icon: Info, key: SettingsTabs.About, label: t('setting:tab.about') }),
+        ].filter((item): item is CategoryItem => Boolean(item))
+      : [];
 
     return [
       { items: general, key: SettingsGroupKey.General, title: t('setting:group.common') },
@@ -138,5 +150,14 @@ export const useCategory = (): CategoryGroup[] => {
       { items: agent, key: SettingsGroupKey.Agent, title: t('setting:group.aiConfig') },
       { items: system, key: SettingsGroupKey.System, title: t('setting:group.system') },
     ].filter((group) => group.items.length > 0);
-  }, [t, enableBusinessFeatures, hideDocs, showApiKeyManage, showProvider, isDevMode, navigate]);
+  }, [
+    t,
+    enableBusinessFeatures,
+    hideDocs,
+    showApiKeyManage,
+    showProvider,
+    isDevMode,
+    isAdmin,
+    navigate,
+  ]);
 };

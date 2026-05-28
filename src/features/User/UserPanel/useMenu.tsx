@@ -17,7 +17,7 @@ import { useNavLayout } from '@/hooks/useNavLayout';
 import { usePlatform } from '@/hooks/usePlatform';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
 import { useUserStore } from '@/store/user';
-import { authSelectors } from '@/store/user/selectors';
+import { authSelectors, userProfileSelectors } from '@/store/user/selectors';
 
 import { useNewVersion } from './useNewVersion';
 
@@ -53,6 +53,7 @@ export const useMenu = () => {
     authSelectors.isLogin(s),
     authSelectors.isLoginWithAuth(s),
   ]);
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const { userPanel } = useNavLayout();
   const businessMenuItems = useBusinessMenuItems(isLogin);
   const { isIOS, isAndroid } = usePlatform();
@@ -78,7 +79,7 @@ export const useMenu = () => {
         </Link>
       ),
     },
-    ...(userPanel.showMemory
+    ...(isAdmin && userPanel.showMemory
       ? [
           {
             icon: <Icon icon={BrainCircuit} />,
@@ -124,7 +125,7 @@ export const useMenu = () => {
 
     ...(isLogin ? settings : []),
     ...businessMenuItems,
-    ...(!isDesktop ? [{ type: 'divider' as const }, ...getDesktopApp] : []),
+    ...(isAdmin && !isDesktop ? [{ type: 'divider' as const }, ...getDesktopApp] : []),
     ...(userPanel.showDataImporter && isLogin
       ? [
           {

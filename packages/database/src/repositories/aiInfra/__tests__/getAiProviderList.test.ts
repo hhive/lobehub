@@ -59,5 +59,29 @@ describe('AiInfraRepos', () => {
         ),
       );
     });
+
+    it('should ignore globally enabled providers for Sub2API-only users', async () => {
+      repo = new AiInfraRepos(serverDB, userId, {
+        anthropic: { enabled: true },
+        deepseek: { enabled: true },
+        openai: { enabled: true },
+      });
+
+      vi.spyOn(repo.aiProviderModel, 'getAiProviderList').mockResolvedValue([
+        {
+          config: { sub2apiOnlyModels: true },
+          enabled: true,
+          id: 'openai',
+          name: 'OpenAI',
+          source: 'builtin',
+        },
+      ] as any);
+
+      const result = await repo.getAiProviderList();
+
+      expect(result.find((provider) => provider.id === 'openai')?.enabled).toBe(true);
+      expect(result.find((provider) => provider.id === 'anthropic')?.enabled).toBe(false);
+      expect(result.find((provider) => provider.id === 'deepseek')?.enabled).toBe(false);
+    });
   });
 });

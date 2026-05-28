@@ -10,6 +10,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { type NavItemProps } from '@/features/NavPanel/components/NavItem';
 import NavItem from '@/features/NavPanel/components/NavItem';
 import { usePathname } from '@/libs/router/navigation';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 import { DiscoverTab } from '@/types/discover';
 import { isModifierClick } from '@/utils/navigation';
 
@@ -31,6 +33,7 @@ const Nav = memo(() => {
   const tab = useActiveTabKey();
   const navigate = useNavigate();
   const { t } = useTranslation('discover');
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const items: Item[] = useMemo(
     () => [
@@ -58,20 +61,24 @@ const Nav = memo(() => {
         title: `MCP`,
         url: '/community/mcp',
       },
-      {
-        icon: Brain,
-        key: DiscoverTab.Models,
-        title: t('tab.model'),
-        url: '/community/model',
-      },
-      {
-        icon: ProviderIcon,
-        key: DiscoverTab.Providers,
-        title: t('tab.provider'),
-        url: '/community/provider',
-      },
+      ...(isAdmin
+        ? [
+            {
+              icon: Brain,
+              key: DiscoverTab.Models,
+              title: t('tab.model'),
+              url: '/community/model',
+            },
+            {
+              icon: ProviderIcon,
+              key: DiscoverTab.Providers,
+              title: t('tab.provider'),
+              url: '/community/provider',
+            },
+          ]
+        : []),
     ],
-    [t],
+    [isAdmin, t],
   );
 
   return (

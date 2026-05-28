@@ -100,6 +100,40 @@ describe('AiInfraRepos', () => {
       });
     });
 
+    it('should exclude models whose providers are not enabled', async () => {
+      vi.spyOn(repo.aiProviderModel, 'getAiProviderRuntimeConfig').mockResolvedValue({
+        openai: { apiKey: 'test-key' },
+      } as unknown as Record<string, AiProviderRuntimeConfig>);
+
+      vi.spyOn(repo, 'getUserEnabledProviderList').mockResolvedValue([
+        { id: 'openai', name: 'OpenAI', source: 'builtin' },
+      ]);
+
+      vi.spyOn(repo, 'getEnabledModels').mockResolvedValue([
+        {
+          enabled: true,
+          id: 'gpt-5.5',
+          providerId: 'openai',
+          type: 'chat',
+        },
+        {
+          enabled: true,
+          id: 'claude-opus-4-7',
+          providerId: 'anthropic',
+          type: 'chat',
+        },
+      ] as EnabledAiModel[]);
+
+      const result = await repo.getAiProviderRuntimeState();
+
+      expect(result.enabledAiModels.map((model) => `${model.providerId}:${model.id}`)).toEqual([
+        'openai:gpt-5.5',
+      ]);
+      expect(result.enabledChatAiProviders).toEqual([
+        { id: 'openai', name: 'OpenAI', source: 'builtin' },
+      ]);
+    });
+
     it('should return provider runtime state with enabledImageAiProviders', async () => {
       const mockRuntimeConfig = {
         fal: {

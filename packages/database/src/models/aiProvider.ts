@@ -79,6 +79,7 @@ export class AiProviderModel {
   getAiProviderList = async (): Promise<AiProviderListItem[]> => {
     const result = await this.db
       .select({
+        config: aiProviders.config,
         description: aiProviders.description,
         enabled: aiProviders.enabled,
         id: aiProviders.id,

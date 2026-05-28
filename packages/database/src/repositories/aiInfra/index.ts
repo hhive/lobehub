@@ -121,6 +121,12 @@ const injectSearchSettings = (providerId: string, item: any) => {
   return item;
 };
 
+const isSub2APIOnlyProvider = (provider: AiProviderListItem) =>
+  Boolean(
+    (provider as AiProviderListItem & { config?: { sub2apiOnlyModels?: boolean } }).config
+      ?.sub2apiOnlyModels,
+  );
+
 export class AiInfraRepos {
   private userId: string;
   private db: LobeChatDatabase;
@@ -146,6 +152,9 @@ export class AiInfraRepos {
    */
   getAiProviderList = async () => {
     const userProviders = await this.aiProviderModel.getAiProviderList();
+    const hasSub2APIOnlyProvider = userProviders.some((provider) =>
+      isSub2APIOnlyProvider(provider),
+    );
 
     // 1. First create a mapping based on DEFAULT_MODEL_PROVIDER_LIST id order
     const orderMap = new Map(DEFAULT_MODEL_PROVIDER_LIST.map((item, index) => [item.id, index]));
@@ -154,7 +163,7 @@ export class AiInfraRepos {
       description: item.description,
       enabled:
         userProviders.some((provider) => provider.id === item.id && provider.enabled) ||
-        this.providerConfigs[item.id]?.enabled,
+        (!hasSub2APIOnlyProvider && this.providerConfigs[item.id]?.enabled),
       id: item.id,
       name: item.name,
       source: 'builtin',
@@ -201,6 +210,8 @@ export class AiInfraRepos {
     const builtinModelList = await pMap(
       enabledProviders,
       async (provider) => {
+        if (isSub2APIOnlyProvider(provider)) return [];
+
         const aiModels = await this.fetchBuiltinModels(provider.id);
         return (aiModels || [])
           .map<EnabledAiModel & { enabled?: boolean | null }>((item) => {
@@ -271,15 +282,24 @@ export class AiInfraRepos {
     Object.entries(result).forEach(([key, value]) => {
       runtimeConfig[key] = merge(this.providerConfigs[key] || {}, value);
     });
-    const enabledAiModels = allModels.filter((model) => model.enabled);
+    const enabledProviderIds = new Set(enabledAiProviders.map((provider) => provider.id));
+    const enabledAiModels = allModels.filter(
+      (model) => model.enabled && enabledProviderIds.has(model.providerId),
+    );
     const enabledChatAiProviders = enabledAiProviders.filter((provider) => {
-      return allModels.some((model) => model.providerId === provider.id && model.type === 'chat');
+      return enabledAiModels.some(
+        (model) => model.providerId === provider.id && model.type === 'chat',
+      );
     });
     const enabledImageAiProviders = enabledAiProviders.filter((provider) => {
-      return allModels.some((model) => model.providerId === provider.id && model.type === 'image');
+      return enabledAiModels.some(
+        (model) => model.providerId === provider.id && model.type === 'image',
+      );
     });
     const enabledVideoAiProviders = enabledAiProviders.filter((provider) => {
-      return allModels.some((model) => model.providerId === provider.id && model.type === 'video');
+      return enabledAiModels.some(
+        (model) => model.providerId === provider.id && model.type === 'video',
+      );
     });
 
     return {

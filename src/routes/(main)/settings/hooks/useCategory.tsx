@@ -66,6 +66,7 @@ export const useCategory = () => {
     userProfileSelectors.userAvatar(s),
     userProfileSelectors.nickName(s),
   ]);
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const remoteServerUrl = useElectronStore(electronSyncSelectors.remoteServerUrl);
   const isDevMode = useUserStore((s) => userGeneralSettingsSelectors.config(s).isDevMode);
 
@@ -136,12 +137,13 @@ export const useCategory = () => {
     const agentItems: CategoryItem[] = [
       // Provider settings should not depend on Advanced tools: new users may need
       // non-LobeHub providers, and desktop users often bring their own API keys.
-      showProvider && {
-        icon: Brain,
-        key: SettingsTabs.Provider,
-        label: t('tab.provider'),
-      },
-      {
+      isAdmin &&
+        showProvider && {
+          icon: Brain,
+          key: SettingsTabs.Provider,
+          label: t('tab.provider'),
+        },
+      isAdmin && {
         icon: Sparkles,
         key: SettingsTabs.ServiceModel,
         label: t('tab.serviceModel'),
@@ -156,7 +158,7 @@ export const useCategory = () => {
         key: SettingsTabs.Memory,
         label: t('tab.memory'),
       },
-      {
+      isAdmin && {
         icon: KeyRound,
         key: SettingsTabs.Creds,
         label: t('tab.creds'),
@@ -166,7 +168,7 @@ export const useCategory = () => {
         key: SettingsTabs.APIKey,
         label: tAuth('tab.apikey'),
       },
-      {
+      isAdmin && {
         icon: MessageCircleIcon,
         key: SettingsTabs.Messenger,
         label: t('tab.messenger'),
@@ -179,45 +181,47 @@ export const useCategory = () => {
       title: t('group.aiConfig'),
     });
 
-    // System group
-    const systemItems: CategoryItem[] = [
-      isDesktop && {
-        icon: EthernetPort,
-        key: SettingsTabs.Proxy,
-        label: t('tab.proxy'),
-      },
-      isDesktop && {
-        icon: TerminalSquare,
-        key: SettingsTabs.SystemTools,
-        label: t('tab.systemTools'),
-      },
-      {
-        icon: Database,
-        key: SettingsTabs.Storage,
-        label: t('tab.storage'),
-      },
-      isDevMode && {
-        icon: KeyIcon,
-        key: SettingsTabs.APIKey,
-        label: tAuth('tab.apikey'),
-      },
-      {
-        icon: EllipsisIcon,
-        key: SettingsTabs.Advanced,
-        label: t('tab.advanced'),
-      },
-      !hideDocs && {
-        icon: Info,
-        key: SettingsTabs.About,
-        label: t('tab.about'),
-      },
-    ].filter(Boolean) as CategoryItem[];
+    if (isAdmin) {
+      // System group
+      const systemItems: CategoryItem[] = [
+        isDesktop && {
+          icon: EthernetPort,
+          key: SettingsTabs.Proxy,
+          label: t('tab.proxy'),
+        },
+        isDesktop && {
+          icon: TerminalSquare,
+          key: SettingsTabs.SystemTools,
+          label: t('tab.systemTools'),
+        },
+        {
+          icon: Database,
+          key: SettingsTabs.Storage,
+          label: t('tab.storage'),
+        },
+        isDevMode && {
+          icon: KeyIcon,
+          key: SettingsTabs.APIKey,
+          label: tAuth('tab.apikey'),
+        },
+        {
+          icon: EllipsisIcon,
+          key: SettingsTabs.Advanced,
+          label: t('tab.advanced'),
+        },
+        !hideDocs && {
+          icon: Info,
+          key: SettingsTabs.About,
+          label: t('tab.about'),
+        },
+      ].filter(Boolean) as CategoryItem[];
 
-    groups.push({
-      items: systemItems,
-      key: SettingsGroupKey.System,
-      title: t('group.system'),
-    });
+      groups.push({
+        items: systemItems,
+        key: SettingsGroupKey.System,
+        title: t('group.system'),
+      });
+    }
 
     return groups;
   }, [
@@ -232,6 +236,7 @@ export const useCategory = () => {
     isDevMode,
     avatarUrl,
     username,
+    isAdmin,
   ]);
 
   return categoryGroups;

@@ -125,6 +125,33 @@ describe('AiInfraRepos', () => {
       );
     });
 
+    it('should skip builtin models for Sub2API-only providers', async () => {
+      const mockProviders = [
+        {
+          config: { sub2apiOnlyModels: true },
+          enabled: true,
+          id: 'openai',
+          name: 'OpenAI',
+          source: 'builtin' as const,
+        },
+      ] as any;
+      const mockAllModels = [
+        { enabled: true, id: 'gpt-5.5', providerId: 'openai', type: 'chat' as const },
+        { enabled: true, id: 'gpt-image-2', providerId: 'openai', type: 'image' as const },
+      ] as EnabledAiModel[];
+
+      vi.spyOn(repo, 'getAiProviderList').mockResolvedValue(mockProviders);
+      vi.spyOn(repo.aiModelModel, 'getAllModels').mockResolvedValue(mockAllModels);
+      const fetchBuiltinModels = vi
+        .spyOn(repo as any, 'fetchBuiltinModels')
+        .mockResolvedValue([{ enabled: true, id: 'gpt-4o', type: 'chat' as const }]);
+
+      const result = await repo.getEnabledModels();
+
+      expect(fetchBuiltinModels).not.toHaveBeenCalledWith('openai');
+      expect(result.map((item) => item.id)).toEqual(['gpt-5.5', 'gpt-image-2']);
+    });
+
     it('should include settings property from builtin model', async () => {
       const mockProviders = [
         { enabled: true, id: 'openai', name: 'OpenAI', source: 'builtin' },

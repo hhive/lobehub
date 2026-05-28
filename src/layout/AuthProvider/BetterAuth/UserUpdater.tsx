@@ -17,6 +17,7 @@ const UserUpdater = memo(() => {
   const isSignedIn = !!session?.user && !error;
 
   const betterAuthUser = session?.user;
+  const betterAuthRole = (betterAuthUser as typeof betterAuthUser & { role?: string | null })?.role;
   const useStoreUpdater = createStoreUpdater(useUserStore);
 
   useStoreUpdater('isLoaded', isLoaded);
@@ -49,6 +50,7 @@ const UserUpdater = memo(() => {
             email: betterAuthUser.email,
             fullName: betterAuthUser.name,
             id: betterAuthUser.id,
+            role: betterAuthRole,
             username: betterAuthUser.username,
           } as LobeUser,
         };

@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { useMarketAuth, useMarketUserProfile } from '@/layout/AuthProvider/MarketAuth';
 import { useServerConfigStore } from '@/store/serverConfig';
 import { serverConfigSelectors } from '@/store/serverConfig/selectors';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 
 /**
  * Check whether the user needs to complete their profile
@@ -39,6 +41,7 @@ const UserAvatar = memo(() => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const { isAuthenticated, isLoading, getCurrentUserInfo, signIn } = useMarketAuth();
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const enableMarketTrustedClient = useServerConfigStore(
     serverConfigSelectors.enableMarketTrustedClient,
@@ -80,6 +83,8 @@ const UserAvatar = memo(() => {
   // If trustedClient is enabled, skip the "become a creator" button and show the avatar directly
   // Otherwise, show the login button when unauthenticated or profile setup is needed
   if (!enableMarketTrustedClient && (!isAuthenticated || needsProfileSetup)) {
+    if (!isAdmin) return null;
+
     return (
       <Button
         icon={UserCircleIcon}

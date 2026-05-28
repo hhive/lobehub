@@ -9,9 +9,9 @@ export const buildTaskManagerDefaultsBlock = ({
 
   return [
     '<task_manager_defaults>',
-    `Default Lobe AI agent id: ${defaultAssigneeAgentId}`,
-    'Use this id as assigneeAgentId when you decide a task should be assigned to the default Lobe AI assistant.',
-    "Do not use it as a listTasks filter unless the user asks for Lobe AI's tasks.",
+    `Default 小逆chat agent id: ${defaultAssigneeAgentId}`,
+    'Use this id as assigneeAgentId when you decide a task should be assigned to the default 小逆chat assistant.',
+    "Do not use it as a listTasks filter unless the user asks for 小逆chat's tasks.",
     '</task_manager_defaults>',
     '',
   ];

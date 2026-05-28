@@ -1,6 +1,6 @@
 'use client';
 
-import { SiGithub, SiX } from '@icons-pack/react-simple-icons';
+import { SiX } from '@icons-pack/react-simple-icons';
 import { ActionIcon, Avatar, Button, Flexbox, Text, Tooltip, TooltipGroup } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
 import { Globe } from 'lucide-react';
@@ -79,17 +79,6 @@ const UserHeader = memo(() => {
 
         <TooltipGroup>
           <Flexbox horizontal align={'center'} gap={8}>
-            {user.socialLinks?.github && (
-              <Tooltip title={`@${user.socialLinks?.github}`}>
-                <a
-                  href={`https://github.com/${user?.socialLinks?.github}`}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <ActionIcon icon={<SiGithub size={16} />} size={20} variant={'outlined'} />
-                </a>
-              </Tooltip>
-            )}
             {user.socialLinks?.twitter && (
               <Tooltip title={`@${user.socialLinks?.twitter}`}>
                 <a

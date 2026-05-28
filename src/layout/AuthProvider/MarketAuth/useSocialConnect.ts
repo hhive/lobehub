@@ -9,7 +9,7 @@ const POLL_TIMEOUT_MS = 15_000;
 const SOCIAL_PROFILE_AUTH_CALLBACK = 'SOCIAL_PROFILE_AUTH_CALLBACK';
 const SOCIAL_PROFILE_AUTH_ERROR = 'SOCIAL_PROFILE_AUTH_ERROR';
 
-export type SocialProvider = 'github' | 'twitter';
+export type SocialProvider = 'twitter';
 
 export interface SocialProfile {
   avatarUrl?: string;

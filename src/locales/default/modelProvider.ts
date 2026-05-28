@@ -120,7 +120,7 @@ export default {
   'createNewAiProvider.sdkType.title': 'Request Format',
   'createNewAiProvider.title': 'Create Custom AI Provider',
   'github.personalAccessToken.desc':
-    'Enter your GitHub PAT. Click [here](https://github.com/settings/tokens) to create one.',
+    'Enter your GitHub PAT. Click your provider console to create one.',
   'github.personalAccessToken.placeholder': 'ghp_xxxxxx',
   'github.personalAccessToken.title': 'GitHub PAT',
   'huggingface.accessToken.desc':

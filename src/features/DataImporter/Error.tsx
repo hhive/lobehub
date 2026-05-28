@@ -5,8 +5,6 @@ import React, { memo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import Balancer from 'react-wrap-balancer';
 
-import { GITHUB_ISSUES } from '@/const/url';
-import { githubService } from '@/services/github';
 import { type ErrorShape } from '@/types/importer';
 
 interface ErrorProps {
@@ -41,18 +39,7 @@ const Error = memo<ErrorProps>(({ error, onClick }) => {
         <Balancer>
           <Trans i18nKey="importModal.error.desc" ns={'common'}>
             非常抱歉，数据库升级过程发生异常。请重试升级，或
-            <a
-              aria-label={'issue'}
-              href={GITHUB_ISSUES}
-              rel="noreferrer"
-              target="_blank"
-              onClick={(e) => {
-                e.preventDefault();
-                githubService.submitImportError(error!);
-              }}
-            >
-              提交问题
-            </a>
+            <span>提交问题</span>
             我们将会第一时间帮你排查问题。
           </Trans>
         </Balancer>

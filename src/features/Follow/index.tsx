@@ -1,13 +1,11 @@
 'use client';
 
-import { SiDiscord, SiGithub, SiMedium, SiX } from '@icons-pack/react-simple-icons';
+import { SiDiscord, SiMedium, SiX } from '@icons-pack/react-simple-icons';
 import { SOCIAL_URL } from '@lobechat/business-const';
 import { ActionIcon, Flexbox } from '@lobehub/ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-
-import { GITHUB } from '@/const/url';
 
 const styles = createStaticStyles(({ css }) => {
   return {
@@ -29,13 +27,6 @@ const Follow = memo(() => {
   const { t } = useTranslation('common');
   return (
     <Flexbox horizontal gap={8}>
-      <a href={GITHUB} rel="noreferrer" target="_blank">
-        <ActionIcon
-          className={styles.icon}
-          icon={SiGithub as any}
-          title={t('follow', { name: 'GitHub' })}
-        />
-      </a>
       <a href={SOCIAL_URL.x} rel="noreferrer" target="_blank">
         <ActionIcon className={styles.icon} icon={SiX as any} title={t('follow', { name: 'X' })} />
       </a>

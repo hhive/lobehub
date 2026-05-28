@@ -5,7 +5,7 @@ import { isDesktop } from '@lobechat/const';
 import { useAnalytics } from '@lobehub/analytics/react';
 import { type MenuProps } from '@lobehub/ui';
 import { ActionIcon, DropdownMenu, Flexbox, Icon } from '@lobehub/ui';
-import { DiscordIcon, GithubIcon } from '@lobehub/ui/icons';
+import { DiscordIcon } from '@lobehub/ui/icons';
 import {
   Book,
   CircleHelp,
@@ -24,7 +24,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import ChangelogModal from '@/components/ChangelogModal';
 import HighlightNotification from '@/components/HighlightNotification';
-import { DOCUMENTS_REFER_URL, GITHUB } from '@/const/url';
+import { DOCUMENTS_REFER_URL } from '@/const/url';
 import Billboard from '@/features/Billboard';
 import { useBillboardMenuItems } from '@/features/Billboard/MenuItems';
 import { useActiveNavKey } from '@/features/NavPanel';
@@ -35,6 +35,7 @@ import { useGlobalStore } from '@/store/global';
 import { systemStatusSelectors } from '@/store/global/selectors/systemStatus';
 import { useServerConfigStore } from '@/store/serverConfig';
 import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/selectors';
 import { userGeneralSettingsSelectors } from '@/store/user/slices/settings/selectors/general';
 
 import { resolveFooterPromotionState } from './promotionPipeline';
@@ -68,6 +69,7 @@ const Footer = memo(() => {
   const { footer } = useNavLayout();
   const activeNavKey = useActiveNavKey();
   const isHomeSidebar = activeNavKey === 'home';
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const billboardMenuItems = useBillboardMenuItems();
   const enableAgentOnboarding = useServerConfigStore((s) => s.featureFlags.enableAgentOnboarding);
   const isMobile = useServerConfigStore((s) => !!s.isMobile);
@@ -305,19 +307,6 @@ const Footer = memo(() => {
         label: t('changelog'),
         onClick: handleOpenChangelogModal,
       },
-      ...(footer.layout === 'compact' && !footer.hideGitHub
-        ? [
-            {
-              icon: <Icon icon={GithubIcon} />,
-              key: 'github',
-              label: (
-                <a href={GITHUB} rel="noopener noreferrer" target="_blank">
-                  GitHub
-                </a>
-              ),
-            },
-          ]
-        : []),
       ...(footer.showEvalEntry && footer.layout === 'compact'
         ? [
             {
@@ -344,7 +333,6 @@ const Footer = memo(() => {
     [
       footer.showSettingsEntry,
       footer.layout,
-      footer.hideGitHub,
       footer.showEvalEntry,
       handleOpenFeedbackModal,
       handleOpenProductHuntCard,
@@ -361,18 +349,15 @@ const Footer = memo(() => {
       {footer.layout === 'expanded' ? (
         <Flexbox horizontal align={'center'} gap={2} justify={'space-between'} padding={8}>
           <Flexbox horizontal align={'center'} flex={1} gap={2}>
-            <DropdownMenu items={helpMenuItems} placement="topLeft">
-              <ActionIcon
-                aria-label={t('userPanel.help')}
-                data-billboard-anchor=""
-                icon={CircleHelp}
-                size={16}
-              />
-            </DropdownMenu>
-            {!footer.hideGitHub && (
-              <a aria-label={'GitHub'} href={GITHUB} rel="noopener noreferrer" target={'_blank'}>
-                <ActionIcon icon={GithubIcon} size={16} title={'GitHub'} />
-              </a>
+            {isAdmin && (
+              <DropdownMenu items={helpMenuItems} placement="topLeft">
+                <ActionIcon
+                  aria-label={t('userPanel.help')}
+                  data-billboard-anchor=""
+                  icon={CircleHelp}
+                  size={16}
+                />
+              </DropdownMenu>
             )}
             <Link to="/eval">
               <ActionIcon icon={FlaskConical} size={16} title="Evaluation Lab" />
@@ -382,9 +367,11 @@ const Footer = memo(() => {
         </Flexbox>
       ) : (
         <Flexbox horizontal align={'center'} gap={2} padding={8}>
-          <DropdownMenu items={helpMenuItems} placement="topLeft">
-            <ActionIcon aria-label={t('userPanel.help')} icon={CircleHelp} size={16} />
-          </DropdownMenu>
+          {isAdmin && (
+            <DropdownMenu items={helpMenuItems} placement="topLeft">
+              <ActionIcon aria-label={t('userPanel.help')} icon={CircleHelp} size={16} />
+            </DropdownMenu>
+          )}
           {isDevMode && (
             <Link to="/settings">
               <ActionIcon

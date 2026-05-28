@@ -67,22 +67,6 @@ const Nav = memo<NavProps>(({ mobile, setActiveTab, activeTab = ModelNavKey.Over
         <a className={styles.link} href={SOCIAL_URL.discord} rel="noreferrer" target="_blank">
           {t('mcp.details.nav.needHelp')}
         </a>
-        <a
-          className={styles.link}
-          href="https://github.com/lobehub/lobe-chat/tree/main/src/config/aiModels"
-          rel="noreferrer"
-          target="_blank"
-        >
-          {t('mcp.details.nav.viewSourceCode')}
-        </a>
-        <a
-          className={styles.link}
-          href="https://github.com/lobehub/lobe-chat/issues/new/choose"
-          rel="noreferrer"
-          target="_blank"
-        >
-          {t('mcp.details.nav.reportIssue')}
-        </a>
       </Flexbox>
     </Flexbox>
   );

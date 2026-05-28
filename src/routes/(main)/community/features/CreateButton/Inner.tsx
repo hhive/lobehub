@@ -1,11 +1,9 @@
-import { Button, Icon, Tag, Typography } from '@lobehub/ui';
-import { GithubIcon } from '@lobehub/ui/icons';
-import { Divider } from 'antd';
+import { Icon, Tag, Typography } from '@lobehub/ui';
 import { Settings, Share2 } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AGENTS_INDEX_GITHUB, imageUrl } from '@/const/url';
+import { imageUrl } from '@/const/url';
 import Image from '@/libs/next/Image';
 
 const Inner = memo(() => {
@@ -34,20 +32,6 @@ const Inner = memo(() => {
         </kbd>
         {t('createGuide.func1.desc2')}
       </p>
-      <Divider />
-      <h3>
-        <Tag color={'cyan'}>{t('createGuide.func2.tag')}</Tag>
-        <span>{t('createGuide.func2.title')}</span>
-      </h3>
-      <p>{t('createGuide.func2.desc')}</p>
-      <br />
-      <Button
-        icon={GithubIcon}
-        type={'primary'}
-        onClick={() => window.open(AGENTS_INDEX_GITHUB, '__blank')}
-      >
-        {t('createGuide.func2.button')}
-      </Button>
     </Typography>
   );
 });

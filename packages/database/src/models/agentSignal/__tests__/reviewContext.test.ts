@@ -31,12 +31,12 @@ describe('AgentSignalReviewContextModel', () => {
      * @example
      * await expect(model.canAgentRunSelfIteration('agent-signal-review-context-inbox')).resolves.toBe(true).
      */
-    it('allows inbox Lobe AI even when virtual and selfIteration chat config is absent', async () => {
+    it('allows inbox 小逆chat even when virtual and selfIteration chat config is absent', async () => {
       await serverDB.insert(users).values({ id: userId });
       await serverDB.insert(agents).values({
         id: 'agent-signal-review-context-inbox',
         slug: INBOX_SESSION_ID,
-        title: 'Lobe AI',
+        title: '小逆chat',
         userId,
         virtual: true,
       });
@@ -73,7 +73,7 @@ describe('AgentSignalReviewContextModel', () => {
      * @example
      * await expect(model.canAgentRunSelfIteration('agent-signal-review-context-enabled')).resolves.toBe(true).
      */
-    it('keeps non-Lobe AI agents behind chatConfig.selfIteration.enabled', async () => {
+    it('keeps non-小逆chat agents behind chatConfig.selfIteration.enabled', async () => {
       await serverDB.insert(users).values({ id: userId });
       await serverDB.insert(agents).values([
         {

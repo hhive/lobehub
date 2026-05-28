@@ -136,7 +136,7 @@ export default {
   'agentInfoDescription.value.untitled': 'Untitled Agent',
   'agentSkillDetail.addedAt': 'Added',
   'agentSkillDetail.publishedAt': 'Published',
-  'agentSkillDetail.repository': 'GitHub Repository',
+  'agentSkillDetail.repository': ' Repository',
   'agentSkillDetail.skillContent': 'Skill Content',
   'agentSkillDetail.sourceUrl': 'Skill Import Source',
   'agentSkillDetail.updatedAt': 'Updated',
@@ -159,10 +159,9 @@ export default {
   'agentSkillModal.description': 'Description',
   'agentSkillModal.descriptionPlaceholder': 'Briefly describe this skill',
   'agentSkillModal.github.desc':
-    'Paste the URL of a skill directory from a public GitHub repository. The directory must contain a SKILL.md file.',
-  'agentSkillModal.github.title': 'Import from GitHub',
-  'agentSkillModal.github.urlPlaceholder':
-    'https://github.com/username/repo/tree/main/skills/my-skill',
+    'Paste the URL of a skill directory from a public repository. The directory must contain a SKILL.md file.',
+  'agentSkillModal.github.title': 'Import from ',
+  'agentSkillModal.github.urlPlaceholder': '',
   'agentSkillModal.importError': 'Import failed: {{error}}',
   'agentSkillModal.importSuccess': 'Agent Skill imported successfully',
   'agentSkillModal.upload.desc': 'Upload a local .zip or .skill file to install.',
@@ -226,16 +225,16 @@ export default {
   'heterogeneousStatus.cloud.tokenChange': 'Change',
   'heterogeneousStatus.cloud.tokenSave': 'Save',
   'heterogeneousStatus.cloud.tokenCancel': 'Cancel',
-  'heterogeneousStatus.cloud.githubLabel': 'GitHub Connection',
+  'heterogeneousStatus.cloud.githubLabel': ' Connection',
   'heterogeneousStatus.cloud.githubDesc':
-    'Select a GitHub OAuth credential to allow the sandbox to clone your private repositories.',
-  'heterogeneousStatus.cloud.githubPlaceholder': 'Select a GitHub credential...',
-  'heterogeneousStatus.cloud.githubNoCreds': 'No GitHub credentials found.',
+    'Select a  OAuth credential to allow the sandbox to clone your private repositories.',
+  'heterogeneousStatus.cloud.githubPlaceholder': 'Select a  credential...',
+  'heterogeneousStatus.cloud.githubNoCreds': 'No  credentials found.',
   'heterogeneousStatus.cloud.manageCredentials': 'Manage Credentials →',
   'heterogeneousStatus.cloud.repoLabel': 'Repositories',
   'heterogeneousStatus.cloud.repoDesc':
     'Add repositories to the list. Switch the active one from the bottom bar in the chat view.',
-  'heterogeneousStatus.cloud.repoPlaceholder': 'owner/repo or https://github.com/owner/repo',
+  'heterogeneousStatus.cloud.repoPlaceholder': 'owner/repo or owner/repo',
   'heterogeneousStatus.cloud.repoAdd': 'Add',
 
   // Heterogeneous agent — Desktop tab
@@ -799,7 +798,7 @@ export default {
   'settingSelfIteration.enabled.desc':
     'Allow this assistant to review recent signals and improve its own skills when the self-iteration workflow runs.',
   'settingSelfIteration.enabled.managedDesc':
-    'Always on for Lobe AI while Self-Iteration is available.',
+    'Always on for 小逆chat while Self-Iteration is available.',
   'settingSelfIteration.enabled.title': 'Enable Self-Iteration',
   'settingSelfIteration.title': 'Self-Iteration',
   'settingSystem.oauth.info.desc': 'Logged in',
@@ -1047,8 +1046,8 @@ When I am ___, I need ___
   'tab.experiment': 'Experiment',
   'tab.hotkey': 'Hotkeys',
   'tab.image': 'Image Generation',
-  'tab.importFromGithub': 'Import from GitHub',
-  'tab.importFromGithub.desc': 'Import from a public GitHub repository',
+  'tab.importFromGithub': 'Import from ',
+  'tab.importFromGithub.desc': 'Import from a public repository',
   'tab.importFromUrl': 'Import from URL',
   'tab.importFromUrl.desc': 'Import via a direct link to SKILL.md',
   'tab.llm': 'Language Model',
@@ -1253,10 +1252,10 @@ When I am ___, I need ___
   'tools.klavis.servers.figma.readme':
     'Connect to Figma to access design files and collaborate on projects. View designs, export assets, browse components, and manage your design workflow through natural conversation.',
 
-  'tools.klavis.servers.github.description': 'Enhanced GitHub MCP Server',
+  'tools.klavis.servers.github.description': 'Enhanced  MCP Server',
 
   'tools.klavis.servers.github.readme':
-    'Connect to GitHub to manage repositories, issues, pull requests, and code. Search code, review changes, create branches, and collaborate on software development projects through conversational AI.',
+    'Connect to  to manage repositories, issues, pull requests, and code. Search code, review changes, create branches, and collaborate on software development projects through conversational AI.',
 
   // Klavis Servers i18n
   'tools.klavis.servers.gmail.description': 'Gmail is a free email service provided by Google',
@@ -1373,9 +1372,9 @@ When I am ___, I need ___
   'tools.lobehubSkill.error': 'Error',
   // LobeHub Skill Providers i18n
   'tools.lobehubSkill.providers.github.description':
-    'GitHub is a platform for version control and collaboration, enabling developers to host, review, and manage code repositories.',
+    ' is a platform for version control and collaboration, enabling developers to host, review, and manage code repositories.',
   'tools.lobehubSkill.providers.github.readme':
-    'Connect to GitHub to access your repositories, create and manage issues, review pull requests, and collaborate on code—all through natural conversation with your AI assistant.',
+    'Connect to  to access your repositories, create and manage issues, review pull requests, and collaborate on code—all through natural conversation with your AI assistant.',
   'tools.lobehubSkill.providers.linear.description':
     'Linear is a modern issue tracking and project management tool designed for high-performance teams to build better software faster',
   'tools.lobehubSkill.providers.linear.readme':

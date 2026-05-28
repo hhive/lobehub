@@ -16,19 +16,19 @@ export const AUTHOR_LIST = {
     avatar: 'https://avatars.githubusercontent.com/u/28616219?v=4',
     desc: 'Founder, Design Engineer',
     name: 'Arvin Xu',
-    url: 'https://github.com/arvinxx',
+    url: OFFICIAL_SITE,
   },
   canisminor: {
     avatar: 'https://avatars.githubusercontent.com/u/17870709?v=4',
     desc: 'Founder, Design Engineer',
     name: 'CanisMinor',
-    url: 'https://github.com/canisminor1990',
+    url: OFFICIAL_SITE,
   },
   lobehub: {
     avatar: 'https://avatars.githubusercontent.com/u/131470832?v=4',
     desc: 'Official Account',
     name: 'LobeHub',
-    url: 'https://github.com/lobehub',
+    url: OFFICIAL_SITE,
   },
 };
 
@@ -106,7 +106,7 @@ export class Ld {
         'width': 512,
       },
       'name': 'LobeHub',
-      'sameAs': [SOCIAL_URL.x, SOCIAL_URL.github, SOCIAL_URL.medium, SOCIAL_URL.youtube],
+      'sameAs': [SOCIAL_URL.x, SOCIAL_URL.medium, SOCIAL_URL.youtube],
       'url': OFFICIAL_SITE,
     };
   }

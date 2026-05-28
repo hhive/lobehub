@@ -13,7 +13,7 @@ interface SubmitRepoModalProps {
   open: boolean;
 }
 
-const GITHUB_URL_REGEX = /^https?:\/\/github\.com\/[\w-]+\/[\w.-]+\/?$/;
+const REPOSITORY_PATH_REGEX = /^[\w-]+\/[\w.-]+\/?$/;
 
 export const SubmitRepoModal = memo<SubmitRepoModalProps>(({ open, onClose, onSuccess }) => {
   const { t } = useTranslation('discover');
@@ -78,12 +78,12 @@ export const SubmitRepoModal = memo<SubmitRepoModalProps>(({ open, onClose, onSu
           rules={[
             { required: true, message: t('user.githubUrlRequired') },
             {
-              pattern: GITHUB_URL_REGEX,
+              pattern: REPOSITORY_PATH_REGEX,
               message: t('user.githubUrlInvalid'),
             },
           ]}
         >
-          <Input placeholder="https://github.com/username/repo" />
+          <Input placeholder="username/repo" />
         </Form.Item>
       </Form>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { SiGithub, SiX } from '@icons-pack/react-simple-icons';
+import { SiX } from '@icons-pack/react-simple-icons';
 import { ActionIcon, Flexbox, Text, Tooltip } from '@lobehub/ui';
 import { Button, Spin } from 'antd';
 import { cssVar } from 'antd-style';
@@ -21,12 +21,10 @@ interface SocialConnectButtonProps {
 }
 
 const providerIcons: Record<SocialProvider, React.ComponentType<{ size?: number }>> = {
-  github: SiGithub,
   twitter: SiX,
 };
 
 const providerNames: Record<SocialProvider, string> = {
-  github: 'GitHub',
   twitter: 'X (Twitter)',
 };
 

@@ -6,7 +6,7 @@ export default {
   'action.connect.short': 'Connect',
   'action.connecting': 'Waiting for authorization…',
   'action.create.error': 'Failed to create task. Please try again.',
-  'action.create.success': 'Scheduled task added. Find it in Lobe AI.',
+  'action.create.success': 'Scheduled task added. Find it in 小逆chat.',
   'action.createButton': 'Add task',
   'action.creating': 'Creating...',
   'action.dismiss.error': 'Failed to dismiss. Please try again.',
@@ -73,21 +73,21 @@ export default {
   // ===== engineering =====
   'oss-intel-daily.title': 'Open-source intel daily',
   'oss-intel-daily.description':
-    'Each morning, 10 tech stack updates: GitHub Trending, big-name open-sourcing, key repo releases.',
+    'Each morning, 10 tech stack updates: open-source trending, big-name open-sourcing, key repo releases.',
   'oss-intel-daily.instruction':
-    'Every morning at 09:00, give me 10 tech-stack updates: GitHub Trending, notable open-source releases from big companies, and new releases from repos in my stack.',
+    'Every morning at 09:00, give me 10 tech-stack updates: open-source trending, notable open-source releases from big companies, and new releases from repos in my stack.',
 
   'repo-health-weekly.title': 'Repo health weekly',
   'repo-health-weekly.description':
     'Every Monday, review your repos: issue backlog, stalled PRs, CI failures, dependency alerts.',
   'repo-health-weekly.instruction':
-    'Every Monday at 09:00, review the GitHub repos I maintain: issue backlog, stalled PRs, CI failures, dependency alerts. Surface what needs attention this week.',
+    'Every Monday at 09:00, review the code repositories I maintain: issue backlog, stalled PRs, CI failures, dependency alerts. Surface what needs attention this week.',
 
   'dependency-security-weekly.title': 'Dependency security check',
   'dependency-security-weekly.description':
     'Every Monday, scan your projects for vulnerabilities and outdated packages with upgrade priority.',
   'dependency-security-weekly.instruction':
-    'Every Monday at 10:00, scan my GitHub projects for vulnerable and outdated dependencies. Suggest upgrade priority based on severity and breaking-change risk.',
+    'Every Monday at 10:00, scan my code projects for vulnerable and outdated dependencies. Suggest upgrade priority based on severity and breaking-change risk.',
 
   'vercel-health-weekly.title': 'Vercel health weekly',
   'vercel-health-weekly.description':

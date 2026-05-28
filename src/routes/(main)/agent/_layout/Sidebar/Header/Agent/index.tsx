@@ -26,7 +26,7 @@ const Agent = memo<PropsWithChildren>(() => {
   ]);
 
   const displayTitle = isInbox
-    ? title || 'Lobe AI'
+    ? title || '小逆chat'
     : title || t('defaultSession', { ns: 'common' });
 
   if (isLoading) return <SkeletonItem height={32} padding={0} />;

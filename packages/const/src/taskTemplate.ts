@@ -13,7 +13,7 @@ import type { InterestAreaKey } from './interests';
  * a concrete icon component; keep this union small and stable so consumers can
  * exhaustively type their registries.
  */
-export const TASK_TEMPLATE_ICONS = ['github'] as const;
+export const TASK_TEMPLATE_ICONS = [] as const;
 
 export type TaskTemplateIcon = (typeof TASK_TEMPLATE_ICONS)[number];
 
@@ -124,7 +124,6 @@ export const taskTemplates: TaskTemplate[] = [
     id: 'oss-intel-daily',
     category: 'engineering',
     cronPattern: '0 9 * * *',
-    icon: 'github',
     interests: ['coding'],
   },
   {
@@ -132,14 +131,12 @@ export const taskTemplates: TaskTemplate[] = [
     category: 'engineering',
     cronPattern: '0 9 * * 1',
     interests: ['coding'],
-    requiresSkills: [{ provider: 'github', source: 'lobehub' }],
   },
   {
     id: 'dependency-security-weekly',
     category: 'engineering',
     cronPattern: '0 10 * * 1',
     interests: ['coding'],
-    requiresSkills: [{ provider: 'github', source: 'lobehub' }],
   },
   {
     id: 'vercel-health-weekly',

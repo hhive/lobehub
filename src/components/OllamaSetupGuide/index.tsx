@@ -160,15 +160,7 @@ const SetupGuide = memo(() => {
                           <Trans
                             i18nKey={'OllamaSetupGuide.install.linux.manual'}
                             ns={'components'}
-                            components={[
-                              <span key="0" />,
-                              <a
-                                href={'https://github.com/ollama/ollama/blob/main/docs/linux.md'}
-                                key="1"
-                                rel="noreferrer"
-                                target="_blank"
-                              />,
-                            ]}
+                            components={[<span key="0" />, <span key="1" />]}
                           />
                         </div>
                       </Flexbox>

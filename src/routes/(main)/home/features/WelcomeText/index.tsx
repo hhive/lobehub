@@ -64,10 +64,6 @@ const AUTO_LINK_PATTERNS: AutoLinkPattern[] = [
     build: (match) => `https://linear.app/lobehub/issue/${match}`,
     regex: /LOBE-\d+/g,
   },
-  {
-    build: (match) => `https://github.com/lobehub/lobehub/issues/${match.slice(1)}`,
-    regex: /#\d+/g,
-  },
 ];
 
 // "Highlighter underline" trick borrowed from builtin-tool Inspector argument

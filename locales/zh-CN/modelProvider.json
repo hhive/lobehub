@@ -107,7 +107,7 @@
   "createNewAiProvider.sdkType.required": "请选择 SDK 类型",
   "createNewAiProvider.sdkType.title": "请求格式",
   "createNewAiProvider.title": "创建自定义 AI 服务商",
-  "github.personalAccessToken.desc": "填入你的 Github PAT，点击 [这里](https://github.com/settings/tokens) 创建",
+  "github.personalAccessToken.desc": "填入你的 Github PAT，点击 服务商控制台 创建",
   "github.personalAccessToken.placeholder": "ghp_xxxxxx",
   "github.personalAccessToken.title": "Github PAT",
   "huggingface.accessToken.desc": "填入你的 HuggingFace Token，点击 [这里](https://huggingface.co/settings/tokens) 创建",

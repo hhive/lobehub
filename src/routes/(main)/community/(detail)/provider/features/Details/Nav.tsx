@@ -6,7 +6,6 @@ import { createStaticStyles } from 'antd-style';
 import { BookOpenIcon, BrainCircuitIcon, ListIcon } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import urlJoin from 'url-join';
 
 import { ProviderNavKey } from '@/types/discover';
 
@@ -79,27 +78,6 @@ const Nav = memo<NavProps>(({ mobile, setActiveTab, activeTab = ProviderNavKey.O
       <Flexbox horizontal gap={12}>
         <a className={styles.link} href={SOCIAL_URL.discord} rel="noreferrer" target="_blank">
           {t('mcp.details.nav.needHelp')}
-        </a>
-        {identifier && (
-          <a
-            className={styles.link}
-            rel="noreferrer"
-            target="_blank"
-            href={urlJoin(
-              'https://github.com/lobehub/lobe-chat/tree/main/src/config/modelProviders',
-              `${identifier}.ts`,
-            )}
-          >
-            {t('mcp.details.nav.viewSourceCode')}
-          </a>
-        )}
-        <a
-          className={styles.link}
-          href="https://github.com/lobehub/lobe-chat/issues/new/choose"
-          rel="noreferrer"
-          target="_blank"
-        >
-          {t('mcp.details.nav.reportIssue')}
         </a>
       </Flexbox>
     </Flexbox>

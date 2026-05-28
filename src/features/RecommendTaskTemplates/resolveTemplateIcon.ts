@@ -1,5 +1,4 @@
 import type { IconType } from '@icons-pack/react-simple-icons';
-import { SiGithub } from '@icons-pack/react-simple-icons';
 import type { TaskTemplate, TaskTemplateIcon, TaskTemplateSkillRequirement } from '@lobechat/const';
 import { type LucideIcon, Sparkles } from 'lucide-react';
 
@@ -11,9 +10,7 @@ export type TemplateIconSpec =
   | { Comp: TemplateIconComponent; kind: 'component' }
   | { kind: 'url'; src: string };
 
-const SELF_ICON_MAP: Record<TaskTemplateIcon, TemplateIconComponent> = {
-  github: SiGithub,
-};
+const SELF_ICON_MAP: Record<TaskTemplateIcon, TemplateIconComponent> = {};
 
 const toSpec = (icon: string | TemplateIconComponent): TemplateIconSpec =>
   typeof icon === 'string' ? { kind: 'url', src: icon } : { Comp: icon, kind: 'component' };

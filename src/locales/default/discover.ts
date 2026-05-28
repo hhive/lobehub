@@ -120,11 +120,11 @@ export default {
   'createGuide.func1.desc2': 'Then click Submit to Agent Community in the top-right corner.',
   'createGuide.func1.tag': 'Option 1',
   'createGuide.func1.title': 'Submit in LobeHub',
-  'createGuide.func2.button': 'Open GitHub Agent repo',
+  'createGuide.func2.button': 'Open  Agent repo',
   'createGuide.func2.desc':
     'To add an Agent to the index, create an entry in `plugins/` using `agent-template.json` or `agent-template-full.json`, add a short description and tags, then open a pull request.',
   'createGuide.func2.tag': 'Option 2',
-  'createGuide.func2.title': 'Submit on GitHub',
+  'createGuide.func2.title': 'Submit on ',
   'dislike': 'Dislike',
   'filter': 'Filter',
   'filterBy.authorRange.everyone': 'All Authors',
@@ -921,9 +921,8 @@ export default {
     'Game data, achievements, leaderboards, and gaming platform skills',
   'skills.categories.gaming.name': 'Gaming',
 
-  'skills.categories.git-github.description':
-    'Git version control and GitHub platform integrations',
-  'skills.categories.git-github.name': 'Git & GitHub',
+  'skills.categories.git-github.description': 'Git version control and  platform integrations',
+  'skills.categories.git-github.name': 'Git & ',
 
   'skills.categories.health-fitness.description':
     'Health tracking, fitness planning, and wellness skills',
@@ -1095,7 +1094,7 @@ export default {
 
   'skills.sorts.name': 'Name',
 
-  'skills.sorts.stars': 'GitHub Stars',
+  'skills.sorts.stars': ' Stars',
 
   'skills.sorts.updatedAt': 'Recently Updated',
 
@@ -1190,13 +1189,13 @@ export default {
   'user.website': 'Website',
 
   'user.cancel': 'Cancel',
-  'user.githubUrl': 'GitHub Repository URL',
-  'user.githubUrlInvalid': 'Please enter a valid GitHub repository URL',
-  'user.githubUrlRequired': 'Please enter a GitHub repository URL',
+  'user.githubUrl': ' Repository URL',
+  'user.githubUrlInvalid': 'Please enter a valid repository URL',
+  'user.githubUrlRequired': 'Please enter a repository URL',
   'user.submit': 'Submit',
   'user.submitRepo': 'Submit Repo',
   'user.submitRepoDescription':
-    'Submit your GitHub repository to import your Skills or MCPs to the community.',
+    'Submit your repository to import your Skills or MCPs to the community.',
   'user.submitRepoError': 'Failed to submit repository. Please try again.',
   'user.submitRepoHint': 'The repository will be reviewed before being published.',
   'user.submitRepoSuccess': 'Repository submitted successfully! It will be reviewed shortly.',

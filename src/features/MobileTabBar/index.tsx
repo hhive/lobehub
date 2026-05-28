@@ -3,12 +3,14 @@ import { type TabBarProps } from '@lobehub/ui/mobile';
 import { TabBar } from '@lobehub/ui/mobile';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { Bot, MessageSquare, User } from 'lucide-react';
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useRouter } from '@/libs/router/navigation';
 import { SidebarTabKey } from '@/store/global/initialState';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/selectors';
 
 const styles = createStaticStyles(({ css }) => ({
   active: css`
@@ -26,10 +28,11 @@ interface Props {
 export default memo<Props>(({ className, tabBarKey }) => {
   const { t } = useTranslation('common');
   const router = useRouter();
-  const openSettings = () => {
+  const openSettings = useCallback(() => {
     router.push('/settings/provider/all');
-  };
+  }, [router]);
   const { showMarket } = useServerConfigStore(featureFlagsSelectors);
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const items: TabBarProps['items'] = useMemo(
     () =>
@@ -44,16 +47,17 @@ export default memo<Props>(({ className, tabBarKey }) => {
           },
           title: t('tab.chat'),
         },
-        showMarket && {
-          icon: (active: boolean) => (
-            <Icon className={active ? styles.active : undefined} icon={Bot} />
-          ),
-          key: SidebarTabKey.Community,
-          onClick: () => {
-            router.push('/community');
+        showMarket &&
+          isAdmin && {
+            icon: (active: boolean) => (
+              <Icon className={active ? styles.active : undefined} icon={Bot} />
+            ),
+            key: SidebarTabKey.Community,
+            onClick: () => {
+              router.push('/community');
+            },
+            title: t('tab.community'),
           },
-          title: t('tab.community'),
-        },
         {
           icon: (active: boolean) => (
             <Icon className={active ? styles.active : undefined} icon={User} />
@@ -63,7 +67,7 @@ export default memo<Props>(({ className, tabBarKey }) => {
           title: t('tab.setting'),
         },
       ].filter(Boolean) as TabBarProps['items'],
-    [t],
+    [t, router, isAdmin, showMarket, openSettings],
   );
 
   return <TabBar safeArea activeKey={tabBarKey} className={className} items={items} />;

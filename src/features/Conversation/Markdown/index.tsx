@@ -20,6 +20,7 @@ const MarkdownMessage = memo<MarkdownProps>(({ children, componentProps, ...rest
           fullFeatured: true,
           theme: highlighterTheme,
           ...componentProps?.highlight,
+          icon: <span aria-hidden style={{ display: 'none' }} />,
         },
         mermaid: { fullFeatured: false, theme: mermaidTheme, ...componentProps?.mermaid },
       }}

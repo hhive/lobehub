@@ -769,7 +769,7 @@
   "skillStore.search": "以名稱或關鍵字搜尋技能，按 Enter 鍵開始搜尋…",
   "skillStore.tabs.community": "社群",
   "skillStore.tabs.custom": "自訂",
-  "skillStore.tabs.lobehub": "LobeHub",
+  "skillStore.tabs.lobehub": "默认技能",
   "skillStore.tabs.mcp": "MCP",
   "skillStore.tabs.skills": "技能",
   "skillStore.title": "技能商店",

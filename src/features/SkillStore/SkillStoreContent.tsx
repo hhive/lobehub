@@ -5,6 +5,9 @@ import { type SegmentedOptions } from 'antd/es/segmented';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
+
 import Search from './Search';
 import AddSkillButton from './SkillList/AddSkillButton';
 import CustomList from './SkillList/Custom';
@@ -21,6 +24,7 @@ export enum SkillStoreTab {
 
 export const SkillStoreContent = () => {
   const { t } = useTranslation('setting');
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const [activeTab, setActiveTab] = useState<SkillStoreTab>(SkillStoreTab.LobeHub);
   const [lobehubKeywords, setLobehubKeywords] = useState('');
   const [skillKeywords, setSkillKeywords] = useState('');
@@ -28,7 +32,7 @@ export const SkillStoreContent = () => {
   const options: SegmentedOptions = [
     { label: t('skillStore.tabs.lobehub'), value: SkillStoreTab.LobeHub },
     { label: t('skillStore.tabs.skills'), value: SkillStoreTab.Skills },
-    { label: t('skillStore.tabs.mcp'), value: SkillStoreTab.MCP },
+    ...(isAdmin ? [{ label: t('skillStore.tabs.mcp'), value: SkillStoreTab.MCP }] : []),
     { label: t('skillStore.tabs.custom'), value: SkillStoreTab.Custom },
   ];
 
@@ -64,9 +68,11 @@ export const SkillStoreContent = () => {
         <Flexbox flex={1} style={{ display: isSkills ? 'flex' : 'none', overflow: 'auto' }}>
           <MarketSkillList keywords={skillKeywords} />
         </Flexbox>
-        <Flexbox flex={1} style={{ display: isMCP ? 'flex' : 'none', overflow: 'auto' }}>
-          <MCPList />
-        </Flexbox>
+        {isAdmin && (
+          <Flexbox flex={1} style={{ display: isMCP ? 'flex' : 'none', overflow: 'auto' }}>
+            <MCPList />
+          </Flexbox>
+        )}
         <Flexbox flex={1} style={{ display: isCustom ? 'flex' : 'none', overflow: 'auto' }}>
           <CustomList />
         </Flexbox>

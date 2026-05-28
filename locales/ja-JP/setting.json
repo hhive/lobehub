@@ -769,7 +769,7 @@
   "skillStore.search": "スキル名またはキーワードで検索し、Enterキーで検索を実行…",
   "skillStore.tabs.community": "コミュニティ",
   "skillStore.tabs.custom": "カスタム",
-  "skillStore.tabs.lobehub": "LobeHub",
+  "skillStore.tabs.lobehub": "默认技能",
   "skillStore.tabs.mcp": "MCP",
   "skillStore.tabs.skills": "スキル",
   "skillStore.title": "スキルストア",

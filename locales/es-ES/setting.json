@@ -769,7 +769,7 @@
   "skillStore.search": "Busca habilidades por nombre o palabra clave, presiona Enter para buscar…",
   "skillStore.tabs.community": "Comunidad",
   "skillStore.tabs.custom": "Personalizado",
-  "skillStore.tabs.lobehub": "LobeHub",
+  "skillStore.tabs.lobehub": "默认技能",
   "skillStore.tabs.mcp": "MCP",
   "skillStore.tabs.skills": "Habilidades",
   "skillStore.title": "Tienda de Habilidades",

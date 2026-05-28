@@ -769,7 +769,7 @@
   "skillStore.search": "Ищите навыки по названию или ключевому слову, нажмите Enter для поиска…",
   "skillStore.tabs.community": "Сообщество",
   "skillStore.tabs.custom": "Пользовательский",
-  "skillStore.tabs.lobehub": "LobeHub",
+  "skillStore.tabs.lobehub": "默认技能",
   "skillStore.tabs.mcp": "MCP",
   "skillStore.tabs.skills": "Навыки",
   "skillStore.title": "Магазин навыков",

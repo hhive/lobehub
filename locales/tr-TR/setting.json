@@ -769,7 +769,7 @@
   "skillStore.search": "Yetenekleri ada veya anahtar kelimeye göre arayın, aramak için Enter tuşuna basın…",
   "skillStore.tabs.community": "Topluluk",
   "skillStore.tabs.custom": "Özel",
-  "skillStore.tabs.lobehub": "LobeHub",
+  "skillStore.tabs.lobehub": "默认技能",
   "skillStore.tabs.mcp": "MCP",
   "skillStore.tabs.skills": "Yetenekler",
   "skillStore.title": "Yetenek Mağazası",

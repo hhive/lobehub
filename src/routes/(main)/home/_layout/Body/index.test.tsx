@@ -15,8 +15,8 @@ interface MockGlobalState {
 const mocks = vi.hoisted(() => ({
   globalState: undefined as unknown as MockGlobalState,
   navLayout: {
-    bottomMenuItems: [] as { key: string; title: string; url: string }[],
-    topNavItems: [] as { key: string; title: string; url: string }[],
+    bottomMenuItems: [] as { hidden?: boolean; key: string; title: string; url: string }[],
+    topNavItems: [] as { hidden?: boolean; key: string; title: string; url: string }[],
   },
   updateSystemStatus: vi.fn(),
 }));
@@ -179,5 +179,21 @@ describe('Home sidebar body', () => {
     expect(children[1]).toHaveAttribute('data-sidebar-bottom-spacer');
     expect(children[2]).toHaveTextContent('Image');
     expect(children[3]).toHaveTextContent('Tasks');
+  });
+
+  it('does not render hidden nav items from the layout', () => {
+    mocks.navLayout = {
+      bottomMenuItems: [
+        { hidden: true, key: 'community', title: 'Community', url: '/community' },
+        { key: 'resource', title: 'Resource', url: '/resource' },
+      ],
+      topNavItems: [],
+    };
+    mocks.globalState.status.sidebarItems = ['community', 'resource'];
+
+    render(<Body />);
+
+    expect(screen.queryByText('Community')).not.toBeInTheDocument();
+    expect(screen.getByText('Resource')).toBeInTheDocument();
   });
 });

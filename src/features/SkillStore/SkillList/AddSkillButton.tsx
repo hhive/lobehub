@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import DevModal from '@/features/PluginDevModal';
 import { useAgentStore } from '@/store/agent';
 import { useToolStore } from '@/store/tool';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 
 import ImportFromUrlModal from './ImportFromUrlModal';
 import UploadSkillModal from './UploadSkillModal';
@@ -21,6 +23,7 @@ const MenuLabel = ({ desc, title }: { desc: string; title: ReactNode }) => (
 
 const AddSkillButton = () => {
   const { t } = useTranslation('setting');
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const [showMcpModal, setMcpModal] = useState(false);
   const [showUrlModal, setUrlModal] = useState(false);
   const [showUploadModal, setUploadModal] = useState(false);
@@ -37,15 +40,17 @@ const AddSkillButton = () => {
         e.stopPropagation();
       }}
     >
-      <DevModal
-        open={showMcpModal}
-        onOpenChange={setMcpModal}
-        onValueChange={updateNewDevPlugin}
-        onSave={async (devPlugin) => {
-          await installCustomPlugin(devPlugin);
-          await togglePlugin(devPlugin.identifier);
-        }}
-      />
+      {isAdmin && (
+        <DevModal
+          open={showMcpModal}
+          onOpenChange={setMcpModal}
+          onValueChange={updateNewDevPlugin}
+          onSave={async (devPlugin) => {
+            await installCustomPlugin(devPlugin);
+            await togglePlugin(devPlugin.identifier);
+          }}
+        />
+      )}
       <ImportFromUrlModal open={showUrlModal} onOpenChange={setUrlModal} />
       <UploadSkillModal open={showUploadModal} onOpenChange={setUploadModal} />
       <DropdownMenu
@@ -64,13 +69,19 @@ const AddSkillButton = () => {
             label: <MenuLabel desc={t('tab.uploadZip.desc')} title={t('tab.uploadZip')} />,
             onClick: () => setUploadModal(true),
           },
-          { type: 'divider' as const },
-          {
-            icon: <Icon icon={PenLine} />,
-            key: 'customMcp',
-            label: <MenuLabel desc={t('tab.addCustomMcp.desc')} title={t('tab.addCustomMcp')} />,
-            onClick: () => setMcpModal(true),
-          },
+          ...(isAdmin
+            ? [
+                { type: 'divider' as const },
+                {
+                  icon: <Icon icon={PenLine} />,
+                  key: 'customMcp',
+                  label: (
+                    <MenuLabel desc={t('tab.addCustomMcp.desc')} title={t('tab.addCustomMcp')} />
+                  ),
+                  onClick: () => setMcpModal(true),
+                },
+              ]
+            : []),
         ]}
       >
         <Button icon={Grid2x2Plus}>

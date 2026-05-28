@@ -786,7 +786,7 @@
   "skillStore.search": "搜索技能名称或关键词，按回车键搜索…",
   "skillStore.tabs.community": "社区",
   "skillStore.tabs.custom": "自定义",
-  "skillStore.tabs.lobehub": "LobeHub",
+  "skillStore.tabs.lobehub": "默认技能",
   "skillStore.tabs.mcp": "MCP",
   "skillStore.tabs.skills": "技能",
   "skillStore.title": "技能商店",

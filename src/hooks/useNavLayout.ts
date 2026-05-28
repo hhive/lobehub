@@ -6,6 +6,8 @@ import { getRouteById } from '@/config/routes';
 import { useGlobalStore } from '@/store/global';
 import { SidebarTabKey } from '@/store/global/initialState';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/selectors';
 
 export interface NavItem {
   hidden?: boolean;
@@ -36,6 +38,7 @@ export const useNavLayout = (): NavLayout => {
   const { t } = useTranslation('common');
   const toggleCommandMenu = useGlobalStore((s) => s.toggleCommandMenu);
   const { showMarket, hideGitHub } = useServerConfigStore(featureFlagsSelectors);
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const topNavItems = useMemo(
     () =>
@@ -78,7 +81,7 @@ export const useNavLayout = (): NavLayout => {
           url: '/image',
         },
         {
-          hidden: !showMarket,
+          hidden: !showMarket || !isAdmin,
           icon: getRouteById('community')!.icon,
           key: SidebarTabKey.Community,
           title: t('tab.community'),
@@ -97,7 +100,7 @@ export const useNavLayout = (): NavLayout => {
           url: '/memory',
         },
       ] as NavItem[],
-    [t, showMarket],
+    [t, showMarket, isAdmin],
   );
 
   const footer = useMemo(

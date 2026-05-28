@@ -8,6 +8,9 @@ import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
+
 export interface GenerationMediaModeSegmentProps {
   /** `hero`: large inline headline select (cyan, borderless). `toolbar`: compact control in the input bar. */
   layout?: 'hero' | 'toolbar';
@@ -35,29 +38,37 @@ const GenerationMediaModeSegment = memo<GenerationMediaModeSegmentProps>(
     const { t } = useTranslation('common');
     const navigate = useNavigate();
     const isHero = layout === 'hero';
+    const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
     const options = useMemo<SelectProps['options']>(
-      () => [
-        {
-          label: (
-            <Flexbox horizontal align="center" gap={8}>
-              {!isHero && <Icon icon={ImageIcon} />}
-              <span className={isHero ? styles.heroText : undefined}>{t('tab.image')}</span>
-            </Flexbox>
-          ),
-          value: 'image',
-        },
-        {
-          label: (
-            <Flexbox horizontal align="center" gap={8}>
-              {!isHero && <Icon icon={Video} />}
-              <span className={isHero ? styles.heroText : undefined}>{t('tab.video')}</span>
-            </Flexbox>
-          ),
-          value: 'video',
-        },
-      ],
-      [t, isHero],
+      () => {
+        const items: SelectProps['options'] = [
+          {
+            label: (
+              <Flexbox horizontal align="center" gap={8}>
+                {!isHero && <Icon icon={ImageIcon} />}
+                <span className={isHero ? styles.heroText : undefined}>{t('tab.image')}</span>
+              </Flexbox>
+            ),
+            value: 'image',
+          },
+        ];
+
+        if (isAdmin) {
+          items.push({
+            label: (
+              <Flexbox horizontal align="center" gap={8}>
+                {!isHero && <Icon icon={Video} />}
+                <span className={isHero ? styles.heroText : undefined}>{t('tab.video')}</span>
+              </Flexbox>
+            ),
+            value: 'video',
+          });
+        }
+
+        return items;
+      },
+      [t, isHero, isAdmin],
     );
 
     const labelRender: SelectProps['labelRender'] = useCallback(

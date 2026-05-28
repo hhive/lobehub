@@ -19,6 +19,8 @@ import { useAgentStore } from '@/store/agent';
 import { agentByIdSelectors, chatConfigByIdSelectors } from '@/store/agent/selectors';
 import { useChatStore } from '@/store/chat';
 import { topicSelectors } from '@/store/chat/selectors';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/selectors';
 
 import ContextWindow from '../ActionBar/Token';
 import { useAgentId } from '../hooks/useAgentId';
@@ -107,6 +109,7 @@ const RuntimeConfig = memo(() => {
   const { updateAgentChatConfig } = useUpdateAgentConfig();
   const [dirPopoverOpen, setDirPopoverOpen] = useState(false);
   const [modePopoverOpen, setModePopoverOpen] = useState(false);
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const showContextWindow = useChatInputStore((s) =>
     s.rightActions.flat().includes('contextWindow'),
   );
@@ -285,7 +288,7 @@ const RuntimeConfig = memo(() => {
       {/* Left: Chat mode switcher + (agent-only) runtime env + working directory */}
       <Flexbox horizontal align={'center'} gap={4}>
         <ModeSelector />
-        {enableAgentMode && (
+        {isAdmin && enableAgentMode && (
           <>
             <Popover
               content={modeContent}
@@ -309,7 +312,7 @@ const RuntimeConfig = memo(() => {
       </Flexbox>
 
       <Flexbox horizontal align={'center'} gap={4}>
-        {enableAgentMode && <ApprovalMode />}
+        {isAdmin && enableAgentMode && <ApprovalMode />}
         {showContextWindow && <ContextWindow />}
       </Flexbox>
     </Flexbox>

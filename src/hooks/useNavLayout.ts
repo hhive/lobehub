@@ -62,13 +62,14 @@ export const useNavLayout = (): NavLayout => {
           url: '/tasks',
         },
         {
+          hidden: !isAdmin,
           icon: getRouteById('page')!.icon,
           key: SidebarTabKey.Pages,
           title: t('tab.pages'),
           url: '/page',
         },
       ] as NavItem[],
-    [t, toggleCommandMenu],
+    [t, toggleCommandMenu, isAdmin],
   );
 
   const bottomMenuItems = useMemo(
@@ -77,7 +78,7 @@ export const useNavLayout = (): NavLayout => {
         {
           icon: getRouteById('image')!.icon,
           key: SidebarTabKey.Image,
-          title: t('tab.generation'),
+          title: t('tab.generation.image', { defaultValue: '生成图片' }),
           url: '/image',
         },
         {

@@ -8,7 +8,7 @@ export default {
   'navigation.group': 'Group',
   'navigation.groupChat': 'Group Chat',
   'navigation.home': 'Home',
-  'navigation.image': 'Image',
+  'navigation.image': 'Generate Image',
   'navigation.knowledgeBase': 'Knowledge Base',
   'navigation.lobehub': 'LobeHub',
   'navigation.memory': 'Memory',

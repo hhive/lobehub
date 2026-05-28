@@ -514,6 +514,7 @@ export default {
   'tab.eval': 'Eval Lab',
   'tab.files': 'Files',
   'tab.generation': 'Generation',
+  'tab.generation.image': 'Generate Image',
   'tab.home': 'Home',
   'tab.knowledgeBase': 'Library',
   'tab.marketplace': 'Marketplace',

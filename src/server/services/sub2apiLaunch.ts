@@ -11,6 +11,7 @@ import { AiModelSourceEnum, loadModels } from 'model-bank';
 
 import { AiModelModel } from '@/database/models/aiModel';
 import { AiProviderModel } from '@/database/models/aiProvider';
+import { UserModel } from '@/database/models/user';
 import { users } from '@/database/schemas/user';
 import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
 
@@ -41,6 +42,10 @@ interface Sub2APIModelItem {
 
 interface Sub2APIModelsResponse {
   data?: Sub2APIModelItem[];
+}
+
+interface DefaultAgentSettings {
+  config?: Record<string, unknown>;
 }
 
 export function buildSub2APIBoundEmail(userId: number): string {
@@ -283,13 +288,27 @@ export async function upsertSub2APIOpenAIProvider(userId: string, payload: Sub2A
   );
   await providerModel.toggleProviderEnabled('openai', true);
 
-  await syncSub2APIModels(userId, payload);
+  const syncResult = await syncSub2APIModels(userId, payload);
+  if (syncResult.defaultChatModel) {
+    const userModel = new UserModel(serverDB, userId);
+    const currentDefaultAgent =
+      ((await userModel.getUserSettingsDefaultAgentConfig()) as DefaultAgentSettings) || {};
+    await userModel.updateSetting({
+      defaultAgent: {
+        ...currentDefaultAgent,
+        config: {
+          ...currentDefaultAgent.config,
+          ...syncResult.defaultChatModel,
+        },
+      },
+    });
+  }
 }
 
 export async function syncSub2APIModels(
   userId: string,
   payload: Sub2APIExchangePayload,
-): Promise<{ count: number; synced: boolean }> {
+): Promise<{ count: number; defaultChatModel?: { model: string; provider: string }; synced: boolean }> {
   try {
     const response = await fetch(buildSub2APIModelsURL(payload.api_base_url), {
       headers: { Authorization: `Bearer ${payload.api_key}` },
@@ -321,11 +340,24 @@ export async function syncSub2APIModels(
     await modelModel.clearModelsByProvider('openai');
     await modelModel.batchUpdateAiModels('openai', lobeModels);
 
-    return { count: lobeModels.length, synced: true };
+    return {
+      count: lobeModels.length,
+      defaultChatModel: pickDefaultSub2APIChatModel(lobeModels),
+      synced: true,
+    };
   } catch (error) {
     console.warn('[sub2api-launch] failed to sync Sub2API models', error);
     return { count: 0, synced: false };
   }
+}
+
+export function pickDefaultSub2APIChatModel(
+  models: Pick<AiProviderModelListItem, 'id' | 'type'>[],
+): { model: string; provider: string } | undefined {
+  const chatModel = models.find((model) => model.type === 'chat');
+  if (!chatModel) return;
+
+  return { model: chatModel.id, provider: 'openai' };
 }
 
 async function callBetterAuth(appOrigin: string, path: string, body: Record<string, unknown>) {

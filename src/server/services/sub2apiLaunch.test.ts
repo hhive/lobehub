@@ -4,6 +4,7 @@ import {
   authenticateSub2APIBoundUser,
   buildSub2APIBoundEmail,
   buildSub2APIPassword,
+  pickDefaultSub2APIChatModel,
   normalizeSub2APIAPIBaseURL,
   syncSub2APIModels,
   upsertSub2APIOpenAIProvider,
@@ -16,6 +17,8 @@ const mocks = vi.hoisted(() => ({
   loadModels: vi.fn(),
   toggleProviderEnabled: vi.fn(),
   updateConfig: vi.fn(),
+  getUserSettingsDefaultAgentConfig: vi.fn(),
+  updateSetting: vi.fn(),
   updateSet: vi.fn(),
   updateWhere: vi.fn(),
 }));
@@ -34,13 +37,11 @@ vi.mock('@/database/models/aiProvider', () => ({
   })),
 }));
 
-vi.mock('@/server/modules/KeyVaultsEncrypt', () => ({
-  KeyVaultsGateKeeper: {
-    getUserKeyVaults: vi.fn(),
-    initWithEnvKey: vi.fn(async () => ({
-      encrypt: mocks.encrypt,
-    })),
-  },
+vi.mock('@/database/models/user', () => ({
+  UserModel: vi.fn().mockImplementation(() => ({
+    getUserSettingsDefaultAgentConfig: mocks.getUserSettingsDefaultAgentConfig,
+    updateSetting: mocks.updateSetting,
+  })),
 }));
 
 vi.mock('@lobechat/database', () => ({
@@ -49,6 +50,15 @@ vi.mock('@lobechat/database', () => ({
       set: mocks.updateSet.mockReturnValue({
         where: mocks.updateWhere,
       }),
+    })),
+  },
+}));
+
+vi.mock('@/server/modules/KeyVaultsEncrypt', () => ({
+  KeyVaultsGateKeeper: {
+    getUserKeyVaults: vi.fn(),
+    initWithEnvKey: vi.fn(async () => ({
+      encrypt: mocks.encrypt,
     })),
   },
 }));
@@ -115,7 +125,10 @@ describe('sub2apiLaunch helpers', () => {
       },
     ]);
     mocks.toggleProviderEnabled.mockReset();
+    mocks.getUserSettingsDefaultAgentConfig.mockReset();
+    mocks.getUserSettingsDefaultAgentConfig.mockResolvedValue({});
     mocks.updateConfig.mockReset();
+    mocks.updateSetting.mockReset();
     mocks.updateSet.mockReset();
     mocks.updateWhere.mockReset();
     if (originalInternalBaseURL === undefined) {
@@ -169,7 +182,11 @@ describe('sub2apiLaunch helpers', () => {
       user_id: 2,
     });
 
-    expect(result).toEqual({ count: 3, synced: true });
+    expect(result).toEqual({
+      count: 3,
+      defaultChatModel: { model: 'gpt-5.5', provider: 'openai' },
+      synced: true,
+    });
     expect(fetchMock).toHaveBeenCalledWith(new URL('https://xiaoni-ai.top/v1/models'), {
       headers: { Authorization: 'Bearer sk-test' },
       method: 'GET',
@@ -209,6 +226,15 @@ describe('sub2apiLaunch helpers', () => {
     ]);
   });
 
+  it('picks the first synced Sub2API chat model as the default agent model', () => {
+    expect(
+      pickDefaultSub2APIChatModel([
+        { id: 'gpt-image-1', type: 'image' } as any,
+        { id: 'gpt-5.5', type: 'chat' } as any,
+      ]),
+    ).toEqual({ model: 'gpt-5.5', provider: 'openai' });
+  });
+
   it('uses same-family Lobe metadata as a fallback for Sub2API models missing from model-bank', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
@@ -227,7 +253,11 @@ describe('sub2apiLaunch helpers', () => {
       user_id: 2,
     });
 
-    expect(result).toEqual({ count: 1, synced: true });
+    expect(result).toEqual({
+      count: 1,
+      defaultChatModel: { model: 'gpt-5.4-nano', provider: 'openai' },
+      synced: true,
+    });
     expect(mocks.batchUpdateAiModels).toHaveBeenCalledWith('openai', [
       expect.objectContaining({
         abilities: { functionCall: true },
@@ -262,7 +292,11 @@ describe('sub2apiLaunch helpers', () => {
       user_id: 2,
     });
 
-    expect(result).toEqual({ count: 1, synced: true });
+    expect(result).toEqual({
+      count: 1,
+      defaultChatModel: { model: 'gemini-2.5-pro', provider: 'openai' },
+      synced: true,
+    });
     expect(mocks.batchUpdateAiModels).toHaveBeenCalledWith('openai', [
       expect.objectContaining({
         abilities: { functionCall: true, vision: true },
@@ -326,6 +360,64 @@ describe('sub2apiLaunch helpers', () => {
       mocks.encrypt,
       expect.any(Function),
     );
+  });
+
+  it('sets the user default agent to the first synced Sub2API chat model after provider sync', async () => {
+    process.env.SUB2API_INTERNAL_API_BASE_URL = 'http://127.0.0.1:8080';
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: [
+            { id: 'gpt-image-1' },
+            { id: 'gpt-5.5' },
+          ],
+          object: 'list',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await upsertSub2APIOpenAIProvider('lobe-user-1', {
+      api_base_url: 'https://xiaoni-ai.top',
+      api_key: 'sk-test',
+      api_key_id: 1,
+      user_id: 2,
+    });
+
+    expect(mocks.updateSetting).toHaveBeenCalledWith({
+      defaultAgent: { config: { model: 'gpt-5.5', provider: 'openai' } },
+    });
+  });
+
+  it('preserves existing default agent settings while updating the Sub2API chat model', async () => {
+    mocks.getUserSettingsDefaultAgentConfig.mockResolvedValue({
+      config: { params: { temperature: 0.2 }, systemRole: 'keep me' },
+      meta: { title: 'Default' },
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: [{ id: 'gpt-5.5' }], object: 'list' }), {
+        status: 200,
+      }),
+    );
+
+    await upsertSub2APIOpenAIProvider('lobe-user-1', {
+      api_base_url: 'https://xiaoni-ai.top',
+      api_key: 'sk-test',
+      api_key_id: 1,
+      user_id: 2,
+    });
+
+    expect(mocks.updateSetting).toHaveBeenCalledWith({
+      defaultAgent: {
+        config: {
+          model: 'gpt-5.5',
+          params: { temperature: 0.2 },
+          provider: 'openai',
+          systemRole: 'keep me',
+        },
+        meta: { title: 'Default' },
+      },
+    });
   });
 
   it('does not clear existing models when Sub2API /v1/models returns an empty list', async () => {

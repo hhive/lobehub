@@ -39,7 +39,7 @@ afterEach(() => {
 describe('useCategory', () => {
   it('should return correct items when the user is logged in with authentication', () => {
     act(() => {
-      useUserStore.setState({ isSignedIn: true });
+      useUserStore.setState({ isSignedIn: true, user: { id: 'admin-user', role: 'admin' } });
     });
 
     const mockOpenChangelogModal = vi.fn();
@@ -57,7 +57,7 @@ describe('useCategory', () => {
 
   it('should return correct items when the user is not logged in', () => {
     act(() => {
-      useUserStore.setState({ isSignedIn: false });
+      useUserStore.setState({ isSignedIn: false, user: undefined });
     });
 
     const mockOpenChangelogModal = vi.fn();
@@ -68,7 +68,23 @@ describe('useCategory', () => {
       expect(items.some((item) => item.key === 'profile')).toBe(false);
       expect(items.some((item) => item.key === 'setting')).toBe(false);
       expect(items.some((item) => item.key === 'data')).toBe(false);
-      expect(items.some((item) => item.key === 'docs')).toBe(true);
+      expect(items.some((item) => item.key === 'docs')).toBe(false);
+      expect(items.some((item) => item.key === 'feedback')).toBe(true);
+      expect(items.some((item) => item.key === 'changelog')).toBe(true);
+    });
+  });
+
+  it('should hide docs for non-admin users', () => {
+    act(() => {
+      useUserStore.setState({ isSignedIn: true, user: { id: 'normal-user', role: 'user' } });
+    });
+
+    const mockOpenChangelogModal = vi.fn();
+    const { result } = renderHook(() => useCategory(mockOpenChangelogModal), { wrapper });
+
+    act(() => {
+      const items = result.current;
+      expect(items.some((item) => item.key === 'docs')).toBe(false);
       expect(items.some((item) => item.key === 'feedback')).toBe(true);
       expect(items.some((item) => item.key === 'changelog')).toBe(true);
     });

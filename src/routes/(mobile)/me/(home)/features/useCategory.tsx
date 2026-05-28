@@ -19,13 +19,16 @@ import { DOCUMENTS, FEEDBACK } from '@/const/index';
 import { usePlatform } from '@/hooks/usePlatform';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
 import { useUserStore } from '@/store/user';
-import { authSelectors } from '@/store/user/selectors';
+import { authSelectors, userProfileSelectors } from '@/store/user/selectors';
 
 export const useCategory = (onOpenChangelogModal: () => void) => {
   const navigate = useNavigate();
   const { t } = useTranslation(['common', 'setting', 'auth']);
   const { showCloudPromotion, hideDocs } = useServerConfigStore(featureFlagsSelectors);
-  const [isLoginWithAuth] = useUserStore((s) => [authSelectors.isLoginWithAuth(s)]);
+  const [isLoginWithAuth, isAdmin] = useUserStore((s) => [
+    authSelectors.isLoginWithAuth(s),
+    userProfileSelectors.isAdmin(s),
+  ]);
   const { isIOS, isAndroid } = usePlatform();
   const businessMeCells = useBusinessMeCells();
 
@@ -75,7 +78,7 @@ export const useCategory = (onOpenChangelogModal: () => void) => {
       label: t('userPanel.cloud', { name: LOBE_CHAT_CLOUD }),
       onClick: () => window.open(`${OFFICIAL_URL}?utm_source=${UTM_SOURCE}`, '__blank'),
     },
-    {
+    isAdmin && {
       icon: Book,
       key: 'docs',
       label: t('document'),

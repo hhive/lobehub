@@ -52,6 +52,35 @@ export function buildSub2APIBoundEmail(userId: number): string {
   return `sub2api-${userId}@sub2api.local`;
 }
 
+function normalizeSub2APIEmail(email?: string): string | undefined {
+  const normalized = email?.trim().toLowerCase();
+  if (!normalized) return;
+  if (/\s/.test(normalized)) return;
+
+  const parts = normalized.split('@');
+  if (parts.length !== 2) return;
+
+  const [local, domain] = parts;
+  if (!local || !domain || !domain.includes('.')) return;
+  if (domain.split('.').some((part) => !part)) return;
+
+  return normalized;
+}
+
+function getSub2APIBoundAuthIdentity(payload: Sub2APIExchangePayload) {
+  const legacyEmail = buildSub2APIBoundEmail(payload.user_id);
+  const email = normalizeSub2APIEmail(payload.email);
+  if (!email) throw new Error('Sub2API exchange returned invalid email');
+
+  const name = payload.username || email;
+
+  return {
+    email,
+    legacyEmail,
+    name,
+  };
+}
+
 export function buildSub2APIPassword({ secret, userId }: PasswordInput): string {
   return crypto.createHash('sha256').update(`${secret}:${userId}`).digest('hex');
 }
@@ -223,26 +252,22 @@ export async function authenticateSub2APIBoundUser(params: {
   payload: Sub2APIExchangePayload;
   secret: string;
 }): Promise<LobeHubAuthResult> {
-  const email = buildSub2APIBoundEmail(params.payload.user_id);
+  const identity = getSub2APIBoundAuthIdentity(params.payload);
   const password = buildSub2APIPassword({ secret: params.secret, userId: params.payload.user_id });
-  const name =
-    params.payload.username || params.payload.email || `Sub2API ${params.payload.user_id}`;
 
-  const signUpResponse = await callBetterAuth(params.appOrigin, '/api/auth/sign-up/email', {
-    email,
-    name,
+  let authResponse = await authenticateWithBetterAuthEmail(params.appOrigin, {
+    email: identity.email,
+    name: identity.name,
     password,
-    rememberMe: true,
   });
 
-  const authResponse =
-    signUpResponse.ok || signUpResponse.status !== 422
-      ? signUpResponse
-      : await callBetterAuth(params.appOrigin, '/api/auth/sign-in/email', {
-          email,
-          password,
-          rememberMe: true,
-        });
+  if (!authResponse.ok && identity.email !== identity.legacyEmail) {
+    authResponse = await callBetterAuth(params.appOrigin, '/api/auth/sign-in/email', {
+      email: identity.legacyEmail,
+      password,
+      rememberMe: true,
+    });
+  }
 
   if (!authResponse.ok) {
     throw new Error(`LobeHub auth failed with status ${authResponse.status}`);
@@ -257,6 +282,26 @@ export async function authenticateSub2APIBoundUser(params: {
   await syncSub2APIUserRole(userId, params.payload.role);
 
   return { setCookies: getSetCookies(authResponse.headers), userId };
+}
+
+async function authenticateWithBetterAuthEmail(
+  appOrigin: string,
+  params: { email: string; name: string; password: string },
+) {
+  const signUpResponse = await callBetterAuth(appOrigin, '/api/auth/sign-up/email', {
+    email: params.email,
+    name: params.name,
+    password: params.password,
+    rememberMe: true,
+  });
+
+  if (signUpResponse.ok || signUpResponse.status !== 422) return signUpResponse;
+
+  return callBetterAuth(appOrigin, '/api/auth/sign-in/email', {
+    email: params.email,
+    password: params.password,
+    rememberMe: true,
+  });
 }
 
 async function syncSub2APIUserRole(userId: string, role?: string) {

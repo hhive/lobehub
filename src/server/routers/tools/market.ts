@@ -16,6 +16,10 @@ import { DiscoverService } from '@/server/services/discover';
 import { FileService } from '@/server/services/file';
 import { MarketService } from '@/server/services/market';
 import {
+  isMarketAuthErrorPayload,
+  refreshMarketTokenAndCreateService,
+} from '@/server/services/market/tokenRefresh';
+import {
   contentBlocksToString,
   processContentBlocks,
 } from '@/server/services/mcp/contentProcessor';
@@ -135,12 +139,85 @@ export interface ExportAndUploadFileResult {
   url?: string;
 }
 
+type MarketToolContext = {
+  fileService: FileService;
+  marketService: MarketService;
+  marketUserInfo?: any;
+  serverDB: any;
+  userId: string;
+  userModel: {
+    getUserSettings: () => Promise<any>;
+    updateSetting: (value: any) => Promise<unknown>;
+  };
+};
+
+const MARKET_AUTH_EXPIRED_MESSAGE =
+  'Market authorization expired. An authorization dialog has been shown to the user. Please wait for the user to complete authorization and then retry the current task.';
+
+const throwMarketAuthorizationExpired = (): never => {
+  throw new TRPCError({
+    code: 'UNAUTHORIZED',
+    message: MARKET_AUTH_EXPIRED_MESSAGE,
+  });
+};
+
+const isMarketAuthResponse = (response: any) =>
+  isMarketAuthErrorPayload(response?.error?.code, response?.error?.message || '');
+
+const isMarketAuthException = (error: unknown) =>
+  isMarketAuthErrorPayload(undefined, error instanceof Error ? error.message : String(error));
+
+const runBuildInTool = async (
+  marketService: MarketService,
+  toolName: CodeInterpreterToolName,
+  params: any,
+  topicId: string,
+  userId: string,
+) => marketService.market.plugins.runBuildInTool(toolName, params, { topicId, userId });
+
+const runBuildInToolWithMarketRefresh = async ({
+  ctx,
+  params,
+  toolName,
+  topicId,
+  userId,
+}: {
+  ctx: MarketToolContext;
+  params: any;
+  toolName: CodeInterpreterToolName;
+  topicId: string;
+  userId: string;
+}) => {
+  try {
+    const response = await runBuildInTool(ctx.marketService, toolName, params, topicId, userId);
+
+    if (response.success || !isMarketAuthResponse(response)) return response;
+  } catch (error) {
+    if (!isMarketAuthException(error)) throw error;
+  }
+
+  const refreshed = await refreshMarketTokenAndCreateService({
+    userInfo: ctx.marketUserInfo,
+    userModel: ctx.userModel,
+  });
+
+  if (!refreshed) throwMarketAuthorizationExpired();
+
+  try {
+    return await runBuildInTool(refreshed.marketService, toolName, params, topicId, userId);
+  } catch (error) {
+    if (isMarketAuthException(error)) throwMarketAuthorizationExpired();
+
+    throw error;
+  }
+};
+
 // ============================== Sandbox Handler ==============================
 const execInSandboxHandler = async ({
   input,
   ctx,
 }: {
-  ctx: { fileService: FileService; marketService: MarketService; serverDB: any; userId: string };
+  ctx: MarketToolContext;
   input: ExecInSandboxInput;
 }): Promise<CallToolResult> => {
   const { toolName, params, topicId } = input;
@@ -205,13 +282,13 @@ const execInSandboxHandler = async ({
       }
     }
 
-    const market = ctx.marketService.market;
-
-    const response = await market.plugins.runBuildInTool(
-      toolName as CodeInterpreterToolName,
-      enhancedParams as any,
-      { topicId, userId },
-    );
+    const response = await runBuildInToolWithMarketRefresh({
+      ctx,
+      params: enhancedParams as any,
+      toolName: toolName as CodeInterpreterToolName,
+      topicId,
+      userId,
+    });
 
     log('execInSandbox response for %s: %O', toolName, response);
 
@@ -220,19 +297,7 @@ const execInSandboxHandler = async ({
       const errorMessage = response.error?.message || 'Unknown error';
 
       // Check for authentication errors and throw UNAUTHORIZED to trigger market auth flow
-      if (
-        errorCode === 'invalid_token' ||
-        errorCode === 'token_expired' ||
-        errorCode === 'unauthorized' ||
-        errorMessage.toLowerCase().includes('invalid_token') ||
-        errorMessage.toLowerCase().includes('token expired')
-      ) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message:
-            'Market authorization expired. An authorization dialog has been shown to the user. Please wait for the user to complete authorization and then retry the current task.',
-        });
-      }
+      if (isMarketAuthErrorPayload(errorCode, errorMessage)) throwMarketAuthorizationExpired();
 
       return {
         error: {
@@ -261,17 +326,7 @@ const execInSandboxHandler = async ({
     const errorMessage = (error as Error).message;
 
     // Check for authentication errors thrown as exceptions
-    if (
-      errorMessage.toLowerCase().includes('invalid_token') ||
-      errorMessage.toLowerCase().includes('token expired') ||
-      errorMessage.toLowerCase().includes('unauthorized')
-    ) {
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message:
-          'Market authorization expired. An authorization dialog has been shown to the user. Please wait for the user to complete authorization and then retry the current task.',
-      });
-    }
+    if (isMarketAuthErrorPayload(undefined, errorMessage)) throwMarketAuthorizationExpired();
 
     return {
       error: {
@@ -658,15 +713,14 @@ export const marketRouter = router({
         const uploadUrl = await s3.createPreSignedUrl(key);
         log('Generated upload URL for key: %s', key);
 
-        // Step 2: Use MarketService from ctx
-        const market = ctx.marketService.market;
-
         // Step 3: Call sandbox's exportFile tool with the upload URL
-        const response = await market.plugins.runBuildInTool(
-          'exportFile',
-          { path, uploadUrl },
-          { topicId, userId: ctx.userId },
-        );
+        const response = await runBuildInToolWithMarketRefresh({
+          ctx,
+          params: { path, uploadUrl },
+          toolName: 'exportFile',
+          topicId,
+          userId: ctx.userId,
+        });
 
         log('Sandbox exportFile response: %O', response);
 
@@ -675,19 +729,7 @@ export const marketRouter = router({
           const errorMessage = response.error?.message || 'Failed to export file from sandbox';
 
           // Check for authentication errors and throw UNAUTHORIZED
-          if (
-            errorCode === 'invalid_token' ||
-            errorCode === 'token_expired' ||
-            errorCode === 'unauthorized' ||
-            errorMessage.toLowerCase().includes('invalid_token') ||
-            errorMessage.toLowerCase().includes('token expired')
-          ) {
-            throw new TRPCError({
-              code: 'UNAUTHORIZED',
-              message:
-                'Market authorization expired. An authorization dialog has been shown to the user. Please wait for the user to complete authorization and then retry the current task.',
-            });
-          }
+          if (isMarketAuthErrorPayload(errorCode, errorMessage)) throwMarketAuthorizationExpired();
 
           return {
             error: { message: errorMessage },
@@ -745,17 +787,7 @@ export const marketRouter = router({
         const errorMessage = (error as Error).message;
 
         // Check for authentication errors
-        if (
-          errorMessage.toLowerCase().includes('invalid_token') ||
-          errorMessage.toLowerCase().includes('token expired') ||
-          errorMessage.toLowerCase().includes('unauthorized')
-        ) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message:
-              'Market authorization expired. An authorization dialog has been shown to the user. Please wait for the user to complete authorization and then retry the current task.',
-          });
-        }
+        if (isMarketAuthErrorPayload(undefined, errorMessage)) throwMarketAuthorizationExpired();
 
         return {
           error: { message: errorMessage },

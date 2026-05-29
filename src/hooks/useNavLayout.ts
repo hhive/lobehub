@@ -82,11 +82,11 @@ export const useNavLayout = (): NavLayout => {
           url: '/image',
         },
         {
-          hidden: !showMarket || !isAdmin,
+          hidden: !showMarket,
           icon: getRouteById('community')!.icon,
           key: SidebarTabKey.Community,
           title: t('tab.community'),
-          url: '/community',
+          url: isAdmin ? '/community' : '/community/skill',
         },
         {
           icon: getRouteById('resource')!.icon,

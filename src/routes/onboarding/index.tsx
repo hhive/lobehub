@@ -1,3 +1,5 @@
-import CommonOnboardingPage from '@/features/Onboarding/Common';
+import { Navigate } from 'react-router-dom';
 
-export default CommonOnboardingPage;
+const OnboardingRoute = () => <Navigate replace to="/" />;
+
+export default OnboardingRoute;

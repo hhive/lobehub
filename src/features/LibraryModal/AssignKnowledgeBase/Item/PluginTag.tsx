@@ -48,7 +48,8 @@ const PluginTag = memo<PluginTagProps>(({ showIcon = true, author, type, showTex
       className={cx(isCustom ? styles.custom : isOfficial ? styles.official : styles.community)}
       icon={showIcon && <Icon icon={isCustom ? Package : isOfficial ? BadgeCheck : CircleUser} />}
     >
-      {showText && (author || t(isCustom ? 'store.customPlugin' : 'store.communityPlugin'))}
+      {showText &&
+        (isOfficial ? '小逆chat' : author || t(isCustom ? 'store.customPlugin' : 'store.communityPlugin'))}
     </Tag>
   );
 });

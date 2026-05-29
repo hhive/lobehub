@@ -3,11 +3,8 @@
 import { ORG_NAME, UTM_SOURCE } from '@lobechat/business-const';
 import { type FlexboxProps } from '@lobehub/ui';
 import { Flexbox } from '@lobehub/ui';
-import { LobeHub } from '@lobehub/ui/brand';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { memo } from 'react';
-
-import { isCustomORG } from '@/const/version';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   logoLink: css`
@@ -32,18 +29,14 @@ const BrandWatermark = memo<Omit<FlexboxProps, 'children'>>(({ style, ...rest })
       {...rest}
     >
       <span>Powered by</span>
-      {isCustomORG ? (
-        <span>{ORG_NAME}</span>
-      ) : (
-        <a
-          className={styles.logoLink}
-          href={`https://lobehub.com?utm_source=${UTM_SOURCE}&utm_content=brand_watermark`}
-          rel="noreferrer"
-          target="_blank"
-        >
-          <LobeHub size={20} type={'text'} />
-        </a>
-      )}
+      <a
+        className={styles.logoLink}
+        href={`https://xiaoni-ai.top?utm_source=${UTM_SOURCE}&utm_content=brand_watermark`}
+        rel="noreferrer"
+        target="_blank"
+      >
+        {ORG_NAME}
+      </a>
     </Flexbox>
   );
 });

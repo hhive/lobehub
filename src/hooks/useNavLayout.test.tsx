@@ -63,6 +63,14 @@ describe('useNavLayout', () => {
     expect(result.current.topNavItems.find((item) => item.key === 'pages')?.hidden).toBe(false);
   });
 
+  it('keeps the community sidebar entry visible for non-admin users', () => {
+    const { result } = renderHook(() => useNavLayout());
+    const communityItem = result.current.bottomMenuItems.find((item) => item.key === 'community');
+
+    expect(communityItem?.hidden).toBe(false);
+    expect(communityItem?.url).toBe('/community/skill');
+  });
+
   it('names the generation sidebar item as image generation', () => {
     const { result } = renderHook(() => useNavLayout());
 

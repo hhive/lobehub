@@ -1,3 +1,5 @@
-import ClassicOnboardingPage from '@/features/Onboarding/Classic';
+import { Navigate } from 'react-router-dom';
 
-export default ClassicOnboardingPage;
+const ClassicOnboardingRoute = () => <Navigate replace to="/" />;
+
+export default ClassicOnboardingRoute;

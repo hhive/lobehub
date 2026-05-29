@@ -42,7 +42,7 @@ const PluginTag = memo<PluginTagProps>(
         icon={showIcon && <Icon icon={isOfficial ? BadgeCheck : CircleUser} />}
         size={'small'}
       >
-        {showText && (author || t('store.communityPlugin'))}
+        {showText && (isOfficial ? '小逆chat' : author || t('store.communityPlugin'))}
       </Tag>
     );
   },

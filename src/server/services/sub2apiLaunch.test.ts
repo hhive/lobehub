@@ -4,8 +4,8 @@ import {
   authenticateSub2APIBoundUser,
   buildSub2APIBoundEmail,
   buildSub2APIPassword,
-  pickDefaultSub2APIChatModel,
   normalizeSub2APIAPIBaseURL,
+  pickDefaultSub2APIChatModel,
   syncSub2APIModels,
   upsertSub2APIOpenAIProvider,
 } from './sub2apiLaunch';
@@ -467,6 +467,7 @@ describe('sub2apiLaunch helpers', () => {
         api_base_url: 'https://xiaoni-ai.top',
         api_key: 'sk-test',
         api_key_id: 1,
+        email: 'admin@example.com',
         role: 'admin',
         user_id: 2,
       },
@@ -476,5 +477,112 @@ describe('sub2apiLaunch helpers', () => {
     expect(result.userId).toBe('lobe-user-1');
     expect(mocks.updateSet).toHaveBeenCalledWith({ role: 'admin' });
     expect(mocks.updateWhere).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the normalized Sub2API email for LobeHub authentication when available', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ user: { id: 'lobe-user-1' } }), {
+        headers: { 'set-cookie': 'session=abc' },
+        status: 200,
+      }),
+    );
+
+    await authenticateSub2APIBoundUser({
+      appOrigin: 'https://chat.example.com',
+      payload: {
+        api_base_url: 'https://xiaoni-ai.top',
+        api_key: 'sk-test',
+        api_key_id: 1,
+        email: '  User@Example.COM  ',
+        user_id: 2,
+        username: 'Readable User',
+      },
+      secret: 'exchange-secret',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL('/api/auth/sign-up/email', 'https://chat.example.com'),
+      expect.objectContaining({
+        body: JSON.stringify({
+          email: 'user@example.com',
+          name: 'Readable User',
+          password: buildSub2APIPassword({ secret: 'exchange-secret', userId: 2 }),
+          rememberMe: true,
+        }),
+      }),
+    );
+  });
+
+  it('rejects LobeHub authentication when the Sub2API email is invalid', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ user: { id: 'lobe-user-1' } }), { status: 200 }),
+    );
+
+    await expect(
+      authenticateSub2APIBoundUser({
+        appOrigin: 'https://chat.example.com',
+        payload: {
+          api_base_url: 'https://xiaoni-ai.top',
+          api_key: 'sk-test',
+          api_key_id: 1,
+          email: 'not-an-email',
+          user_id: 2,
+        },
+        secret: 'exchange-secret',
+      }),
+    ).rejects.toThrow('Sub2API exchange returned invalid email');
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects LobeHub authentication when the Sub2API email is missing', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ user: { id: 'lobe-user-1' } }), { status: 200 }),
+    );
+
+    await expect(
+      authenticateSub2APIBoundUser({
+        appOrigin: 'https://chat.example.com',
+        payload: {
+          api_base_url: 'https://xiaoni-ai.top',
+          api_key: 'sk-test',
+          api_key_id: 1,
+          user_id: 2,
+        },
+        secret: 'exchange-secret',
+      }),
+    ).rejects.toThrow('Sub2API exchange returned invalid email');
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the service-owned email when the real email login fails for a historical user', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('already exists', { status: 422 }))
+      .mockResolvedValueOnce(new Response('wrong password', { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ user: { id: 'legacy-lobe-user' } }), { status: 200 }),
+      );
+
+    const result = await authenticateSub2APIBoundUser({
+      appOrigin: 'https://chat.example.com',
+      payload: {
+        api_base_url: 'https://xiaoni-ai.top',
+        api_key: 'sk-test',
+        api_key_id: 1,
+        email: 'user@example.com',
+        user_id: 2,
+      },
+      secret: 'exchange-secret',
+    });
+
+    expect(result.userId).toBe('legacy-lobe-user');
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      new URL('/api/auth/sign-in/email', 'https://chat.example.com'),
+      expect.objectContaining({
+        body: expect.stringContaining('"email":"sub2api-2@sub2api.local"'),
+      }),
+    );
   });
 });

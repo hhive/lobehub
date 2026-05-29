@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe('community useNav', () => {
-  it('hides model and provider tabs from non-admin users', () => {
+  it('only shows the skill tab to non-admin users', () => {
     setUserRole('user');
 
     const { result } = renderHook(() => useNav(), {
@@ -42,11 +42,15 @@ describe('community useNav', () => {
 
     const keys = result.current.items.map((item: any) => item.key);
 
+    expect(keys).toEqual([DiscoverTab.Skills]);
+    expect(keys).not.toContain(DiscoverTab.Home);
+    expect(keys).not.toContain(DiscoverTab.Assistants);
+    expect(keys).not.toContain(DiscoverTab.Mcp);
     expect(keys).not.toContain(DiscoverTab.Models);
     expect(keys).not.toContain(DiscoverTab.Providers);
   });
 
-  it('keeps model and provider tabs visible for admin users', () => {
+  it('keeps all community tabs visible for admin users', () => {
     setUserRole('admin');
 
     const { result } = renderHook(() => useNav(), {
@@ -55,6 +59,10 @@ describe('community useNav', () => {
 
     const keys = result.current.items.map((item: any) => item.key);
 
+    expect(keys).toContain(DiscoverTab.Home);
+    expect(keys).toContain(DiscoverTab.Assistants);
+    expect(keys).toContain(DiscoverTab.Skills);
+    expect(keys).toContain(DiscoverTab.Mcp);
     expect(keys).toContain(DiscoverTab.Models);
     expect(keys).toContain(DiscoverTab.Providers);
   });

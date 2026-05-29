@@ -37,32 +37,36 @@ const Nav = memo(() => {
 
   const items: Item[] = useMemo(
     () => [
-      {
-        icon: ShapesIcon,
-        key: DiscoverTab.Home,
-        title: t('tab.home'),
-        url: '/community',
-      },
-      {
-        icon: Bot,
-        key: DiscoverTab.Assistants,
-        title: t('tab.assistant'),
-        url: '/community/agent',
-      },
+      ...(isAdmin
+        ? [
+            {
+              icon: ShapesIcon,
+              key: DiscoverTab.Home,
+              title: t('tab.home'),
+              url: '/community',
+            },
+            {
+              icon: Bot,
+              key: DiscoverTab.Assistants,
+              title: t('tab.assistant'),
+              url: '/community/agent',
+            },
+          ]
+        : []),
       {
         icon: SkillsIcon,
         key: DiscoverTab.Skills,
         title: t('tab.skill'),
         url: '/community/skill',
       },
-      {
-        icon: McpIcon,
-        key: DiscoverTab.Mcp,
-        title: `MCP`,
-        url: '/community/mcp',
-      },
       ...(isAdmin
         ? [
+            {
+              icon: McpIcon,
+              key: DiscoverTab.Mcp,
+              title: `MCP`,
+              url: '/community/mcp',
+            },
             {
               icon: Brain,
               key: DiscoverTab.Models,

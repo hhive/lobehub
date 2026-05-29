@@ -47,14 +47,13 @@ export default memo<Props>(({ className, tabBarKey }) => {
           },
           title: t('tab.chat'),
         },
-        showMarket &&
-          isAdmin && {
+        showMarket && {
             icon: (active: boolean) => (
               <Icon className={active ? styles.active : undefined} icon={Bot} />
             ),
             key: SidebarTabKey.Community,
             onClick: () => {
-              router.push('/community');
+              router.push(isAdmin ? '/community' : '/community/skill');
             },
             title: t('tab.community'),
           },

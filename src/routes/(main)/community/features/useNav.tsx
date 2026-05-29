@@ -1,5 +1,6 @@
 import { MCP } from '@lobehub/icons';
 import { Icon } from '@lobehub/ui';
+import { SkillsIcon } from '@lobehub/ui/icons';
 import { Bot, Brain, BrainCircuit, House } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { useMemo } from 'react';
@@ -31,25 +32,25 @@ export const useNav = () => {
 
   const items: MenuProps['items'] = useMemo(
     () => [
-      {
-        icon: <Icon icon={House} size={ICON_SIZE} />,
-        key: DiscoverTab.Home,
-        label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.home')}</div>,
-      },
-      {
-        icon: <Icon icon={Bot} size={ICON_SIZE} />,
-        key: DiscoverTab.Assistants,
-        label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.assistant')}</div>,
-      },
-      {
-        icon: <MCP className={'anticon'} size={ICON_SIZE} />,
-        key: DiscoverTab.Mcp,
-        label: (
-          <div style={{ color: 'inherit', display: 'inline' }}>{`MCP ${t('tab.plugin')}`}</div>
-        ),
-      },
       ...(isAdmin
         ? [
+            {
+              icon: <Icon icon={House} size={ICON_SIZE} />,
+              key: DiscoverTab.Home,
+              label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.home')}</div>,
+            },
+            {
+              icon: <Icon icon={Bot} size={ICON_SIZE} />,
+              key: DiscoverTab.Assistants,
+              label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.assistant')}</div>,
+            },
+            {
+              icon: <MCP className={'anticon'} size={ICON_SIZE} />,
+              key: DiscoverTab.Mcp,
+              label: (
+                <div style={{ color: 'inherit', display: 'inline' }}>{`MCP ${t('tab.plugin')}`}</div>
+              ),
+            },
             {
               icon: <Icon icon={Brain} size={ICON_SIZE} />,
               key: DiscoverTab.Models,
@@ -62,6 +63,11 @@ export const useNav = () => {
             },
           ]
         : []),
+      {
+        icon: <SkillsIcon className={'anticon'} size={ICON_SIZE} />,
+        key: DiscoverTab.Skills,
+        label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.skill')}</div>,
+      },
     ],
     [isAdmin, t],
   );

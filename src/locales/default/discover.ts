@@ -14,6 +14,7 @@ export default {
   'assistants.addAgent': 'Add Agent',
   'assistants.addAgentAndConverse': 'Add Agent & Chat',
   'assistants.addAgentSuccess': 'Added',
+  'assistants.directChat': 'Chat Directly Without Forking',
   'assistants.conversation.l1':
     'Hi, I’m **{{name}}**. Share your goal or Context—we’ll collaborate from here.',
   'assistants.conversation.l2': 'Here’s what I can do:',

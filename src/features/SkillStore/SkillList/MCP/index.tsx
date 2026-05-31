@@ -7,16 +7,20 @@ import { useTranslation } from 'react-i18next';
 import { VirtuosoGrid } from 'react-virtuoso';
 
 import { useToolStore } from '@/store/tool';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 
 import Item from '../Community/Item';
 import Empty from '../Empty';
 import Loading from '../Loading';
+import { filterLobeHubRemoteItems, isLobeHubRemoteMcp } from '../lobehubRemote';
 import { virtuosoGridStyles } from '../style';
 import VirtuosoLoading from '../VirtuosoLoading';
 import WantMoreSkills from '../WantMoreSkills';
 
 export const MCPList = memo(() => {
   const { t } = useTranslation('setting');
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const [
     keywords,
@@ -68,7 +72,9 @@ export const MCPList = memo(() => {
     );
   }
 
-  if (allItems.length === 0) return <Empty search={hasSearchKeywords} />;
+  const visibleItems = filterLobeHubRemoteItems(allItems, isAdmin, isLobeHubRemoteMcp);
+
+  if (visibleItems.length === 0) return <Empty search={hasSearchKeywords} />;
 
   const hasReachedEnd = totalPages !== undefined && currentPage >= totalPages;
 
@@ -81,11 +87,11 @@ export const MCPList = memo(() => {
   return (
     <VirtuosoGrid
       components={{ Footer: renderFooter }}
-      data={allItems}
+      data={visibleItems}
       endReached={loadMoreMCPPlugins}
       increaseViewportBy={typeof window !== 'undefined' ? window.innerHeight : 0}
       itemClassName={virtuosoGridStyles.item}
-      itemContent={(_, item) => <Item {...item} />}
+      itemContent={(_, item) => <Item showLobeHubTag={isLobeHubRemoteMcp(item)} {...item} />}
       listClassName={virtuosoGridStyles.list}
       overscan={24}
       style={{ height: '60vh', width: '100%' }}

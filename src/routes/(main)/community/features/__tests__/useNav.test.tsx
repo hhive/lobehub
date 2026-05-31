@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe('community useNav', () => {
-  it('only shows the skill tab to non-admin users', () => {
+  it('shows the assistant and skill tabs to non-admin users', () => {
     setUserRole('user');
 
     const { result } = renderHook(() => useNav(), {
@@ -42,9 +42,8 @@ describe('community useNav', () => {
 
     const keys = result.current.items.map((item: any) => item.key);
 
-    expect(keys).toEqual([DiscoverTab.Skills]);
+    expect(keys).toEqual([DiscoverTab.Assistants, DiscoverTab.Skills]);
     expect(keys).not.toContain(DiscoverTab.Home);
-    expect(keys).not.toContain(DiscoverTab.Assistants);
     expect(keys).not.toContain(DiscoverTab.Mcp);
     expect(keys).not.toContain(DiscoverTab.Models);
     expect(keys).not.toContain(DiscoverTab.Providers);

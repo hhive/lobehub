@@ -158,7 +158,7 @@ const AddAgent = memo<{ mobile?: boolean }>(({ mobile }) => {
         type={'primary'}
         onClick={handleAddAgentAndConverse}
       >
-        {t('assistants.addAgentAndConverse')}
+        {t('assistants.directChat')}
       </Button>
       <DropdownMenu
         items={menuItems}

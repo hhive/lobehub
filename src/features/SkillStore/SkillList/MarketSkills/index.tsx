@@ -11,11 +11,14 @@ import { useClientDataSWR } from '@/libs/swr';
 import { discoverService } from '@/services/discover';
 import { globalHelpers } from '@/store/global/helpers';
 import { useToolStore } from '@/store/tool';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 import { type DiscoverSkillItem, SkillSorts } from '@/types/discover';
 
 import MarketSkillItem from '../Community/MarketSkillItem';
 import Empty from '../Empty';
 import Loading from '../Loading';
+import { filterLobeHubRemoteItems, isRemoteMarketSkill } from '../lobehubRemote';
 import { virtuosoGridStyles } from '../style';
 import VirtuosoLoading from '../VirtuosoLoading';
 import WantMoreSkills from '../WantMoreSkills';
@@ -26,6 +29,7 @@ interface MarketSkillListProps {
 
 const MarketSkillList = memo<MarketSkillListProps>(({ keywords }) => {
   const { t } = useTranslation('setting');
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   // Ensure agent skills are fetched so install status is available
   const useFetchAgentSkills = useToolStore((s) => s.useFetchAgentSkills);
@@ -53,13 +57,14 @@ const MarketSkillList = memo<MarketSkillListProps>(({ keywords }) => {
   useEffect(() => {
     if (!data) return;
     setTotalPages(data.totalPages);
+    const visibleItems = filterLobeHubRemoteItems(data.items, isAdmin, isRemoteMarketSkill);
 
     if (page === 1) {
-      setItems(data.items);
+      setItems(visibleItems);
     } else {
-      setItems((prev) => uniqBy([...prev, ...data.items], (i) => i.identifier));
+      setItems((prev) => uniqBy([...prev, ...visibleItems], (i) => i.identifier));
     }
-  }, [data, page]);
+  }, [data, isAdmin, page]);
 
   // Reset on keyword change
   const prevKeywordsRef = useRef(keywords);
@@ -106,7 +111,7 @@ const MarketSkillList = memo<MarketSkillListProps>(({ keywords }) => {
       endReached={loadMore}
       increaseViewportBy={typeof window !== 'undefined' ? window.innerHeight : 0}
       itemClassName={virtuosoGridStyles.item}
-      itemContent={(_, item) => <MarketSkillItem {...item} />}
+      itemContent={(_, item) => <MarketSkillItem showLobeHubTag {...item} />}
       listClassName={virtuosoGridStyles.list}
       overscan={24}
       style={{ height: '60vh', width: '100%' }}

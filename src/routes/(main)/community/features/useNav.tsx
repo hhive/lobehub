@@ -40,11 +40,6 @@ export const useNav = () => {
               label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.home')}</div>,
             },
             {
-              icon: <Icon icon={Bot} size={ICON_SIZE} />,
-              key: DiscoverTab.Assistants,
-              label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.assistant')}</div>,
-            },
-            {
               icon: <MCP className={'anticon'} size={ICON_SIZE} />,
               key: DiscoverTab.Mcp,
               label: (
@@ -63,6 +58,11 @@ export const useNav = () => {
             },
           ]
         : []),
+      {
+        icon: <Icon icon={Bot} size={ICON_SIZE} />,
+        key: DiscoverTab.Assistants,
+        label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.assistant')}</div>,
+      },
       {
         icon: <SkillsIcon className={'anticon'} size={ICON_SIZE} />,
         key: DiscoverTab.Skills,

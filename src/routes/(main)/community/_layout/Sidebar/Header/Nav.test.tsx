@@ -66,12 +66,12 @@ afterEach(() => {
 });
 
 describe('community sidebar nav', () => {
-  it('only shows the skill entry to non-admin users', () => {
+  it('shows the assistant and skill entries to non-admin users', () => {
     render(<Nav />);
 
+    expect(screen.getByText('tab.assistant')).toBeInTheDocument();
     expect(screen.getByText('tab.skill')).toBeInTheDocument();
     expect(screen.queryByText('tab.home')).not.toBeInTheDocument();
-    expect(screen.queryByText('tab.assistant')).not.toBeInTheDocument();
     expect(screen.queryByText('MCP')).not.toBeInTheDocument();
     expect(screen.queryByText('tab.model')).not.toBeInTheDocument();
     expect(screen.queryByText('tab.provider')).not.toBeInTheDocument();

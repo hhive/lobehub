@@ -14,6 +14,7 @@ import { useToolStore } from '@/store/tool';
 import { type SkillListItem } from '@/types/index';
 import { downloadFile } from '@/utils/client/downloadFile';
 
+import { LOBEHUB_REMOTE_TAG } from './lobehubRemote';
 import { itemStyles } from './style';
 
 const AgentSkillDetail = lazy(() => import('@/features/AgentSkillDetail'));
@@ -38,10 +39,11 @@ const styles = createStaticStyles(({ css }) => ({
 }));
 
 interface AgentSkillItemProps {
+  showLobeHubTag?: boolean;
   skill: SkillListItem;
 }
 
-const AgentSkillItem = memo<AgentSkillItemProps>(({ skill }) => {
+const AgentSkillItem = memo<AgentSkillItemProps>(({ showLobeHubTag, skill }) => {
   const { t } = useTranslation('plugin');
   const { t: tc } = useTranslation('common');
   const [detailOpen, setDetailOpen] = useState(false);
@@ -90,7 +92,9 @@ const AgentSkillItem = memo<AgentSkillItemProps>(({ skill }) => {
               <span className={styles.title} onClick={() => setDetailOpen(true)}>
                 {skill.name}
               </span>
-              <Tag icon={<Icon icon={SkillsIcon} />} size={'small'} />
+              <Tag icon={<Icon icon={SkillsIcon} />} size={'small'}>
+                {showLobeHubTag ? LOBEHUB_REMOTE_TAG : undefined}
+              </Tag>
             </Flexbox>
             {skill.description && (
               <span className={itemStyles.description}>{skill.description}</span>

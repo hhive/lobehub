@@ -8,6 +8,7 @@ import {
   Icon,
   Modal,
   stopPropagation,
+  Tag,
 } from '@lobehub/ui';
 import { confirmModal } from '@lobehub/ui/base-ui';
 import { Button } from 'antd';
@@ -28,9 +29,11 @@ import { useToolStore } from '@/store/tool';
 import { mcpStoreSelectors, pluginSelectors } from '@/store/tool/selectors';
 import { type DiscoverMcpItem } from '@/types/discover';
 
+import { LOBEHUB_REMOTE_TAG } from '../lobehubRemote';
 import { itemStyles } from '../style';
 
-const Item = memo<DiscoverMcpItem>(({ name, description, icon, identifier }) => {
+const Item = memo<DiscoverMcpItem & { showLobeHubTag?: boolean }>(
+  ({ name, description, icon, identifier, showLobeHubTag }) => {
   const styles = itemStyles;
   const { t } = useTranslation('plugin');
   const [detailOpen, setDetailOpen] = useState(false);
@@ -140,6 +143,7 @@ const Item = memo<DiscoverMcpItem>(({ name, description, icon, identifier }) => 
             <Flexbox horizontal align="center" gap={8}>
               <span className={styles.title}>{name}</span>
               <MCPTag showText={false} />
+              {showLobeHubTag && <Tag size={'small'}>{LOBEHUB_REMOTE_TAG}</Tag>}
             </Flexbox>
             {description && <span className={styles.description}>{description}</span>}
           </Flexbox>
@@ -166,7 +170,8 @@ const Item = memo<DiscoverMcpItem>(({ name, description, icon, identifier }) => 
       </Modal>
     </>
   );
-});
+  },
+);
 
 Item.displayName = 'CommunityListItem';
 

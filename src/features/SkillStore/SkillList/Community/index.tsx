@@ -10,11 +10,18 @@ import { VirtuosoGrid } from 'react-virtuoso';
 
 import { useToolStore } from '@/store/tool';
 import { agentSkillsSelectors } from '@/store/tool/selectors';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 import { type DiscoverMcpItem } from '@/types/discover';
 
 import AgentSkillItem from '../AgentSkillItem';
 import Empty from '../Empty';
 import Loading from '../Loading';
+import {
+  filterLobeHubRemoteItems,
+  isLobeHubRemoteMcp,
+  isMarketAgentSkill,
+} from '../lobehubRemote';
 import { virtuosoGridStyles } from '../style';
 import VirtuosoLoading from '../VirtuosoLoading';
 import WantMoreSkills from '../WantMoreSkills';
@@ -26,6 +33,7 @@ type CommunityListItem =
 
 export const CommunityList = memo(() => {
   const { t } = useTranslation('setting');
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const [
     keywords,
@@ -56,26 +64,28 @@ export const CommunityList = memo(() => {
 
   const filteredMarketAgentSkills = useMemo(() => {
     const lowerKeywords = (keywords || '').toLowerCase().trim();
-    if (!lowerKeywords) return marketAgentSkills;
+    const visibleSkills = filterLobeHubRemoteItems(marketAgentSkills, isAdmin, isMarketAgentSkill);
+    if (!lowerKeywords) return visibleSkills;
 
-    return marketAgentSkills.filter((skill) => {
+    return visibleSkills.filter((skill) => {
       const name = skill.name?.toLowerCase() || '';
       const identifier = skill.identifier?.toLowerCase() || '';
       return name.includes(lowerKeywords) || identifier.includes(lowerKeywords);
     });
-  }, [marketAgentSkills, keywords]);
+  }, [isAdmin, marketAgentSkills, keywords]);
 
   const combinedItems = useMemo<CommunityListItem[]>(() => {
     const agentSkillItems: CommunityListItem[] = filteredMarketAgentSkills.map((skill) => ({
       itemType: 'agentSkill' as const,
       skill,
     }));
-    const mcpItems: CommunityListItem[] = allItems.map((data) => ({
+    const visibleMcpItems = filterLobeHubRemoteItems(allItems, isAdmin, isLobeHubRemoteMcp);
+    const mcpItems: CommunityListItem[] = visibleMcpItems.map((data) => ({
       data,
       itemType: 'mcp' as const,
     }));
     return [...agentSkillItems, ...mcpItems];
-  }, [filteredMarketAgentSkills, allItems]);
+  }, [filteredMarketAgentSkills, allItems, isAdmin]);
 
   const prevKeywordsRef = useRef(keywords);
 
@@ -133,9 +143,9 @@ export const CommunityList = memo(() => {
         }}
         itemContent={(_, item) =>
           item.itemType === 'agentSkill' ? (
-            <AgentSkillItem skill={item.skill} />
+            <AgentSkillItem showLobeHubTag={isMarketAgentSkill(item.skill)} skill={item.skill} />
           ) : (
-            <Item {...item.data} />
+            <Item showLobeHubTag={isLobeHubRemoteMcp(item.data)} {...item.data} />
           )
         }
       />

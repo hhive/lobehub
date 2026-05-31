@@ -45,14 +45,14 @@ const Nav = memo(() => {
               title: t('tab.home'),
               url: '/community',
             },
-            {
-              icon: Bot,
-              key: DiscoverTab.Assistants,
-              title: t('tab.assistant'),
-              url: '/community/agent',
-            },
           ]
         : []),
+      {
+        icon: Bot,
+        key: DiscoverTab.Assistants,
+        title: t('tab.assistant'),
+        url: '/community/agent',
+      },
       {
         icon: SkillsIcon,
         key: DiscoverTab.Skills,

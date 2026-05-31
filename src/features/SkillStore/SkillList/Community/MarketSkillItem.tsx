@@ -14,6 +14,7 @@ import { agentSkillsSelectors } from '@/store/tool/selectors';
 import { type DiscoverSkillItem } from '@/types/discover';
 import { downloadFile } from '@/utils/client/downloadFile';
 
+import { LOBEHUB_REMOTE_TAG } from '../lobehubRemote';
 import { itemStyles } from '../style';
 
 const MarketSkillDetail = lazy(() => import('../MarketSkills/MarketSkillDetail'));
@@ -36,7 +37,8 @@ const styles = createStaticStyles(({ css }) => ({
   `,
 }));
 
-const MarketSkillItem = memo<DiscoverSkillItem>(({ name, icon, description, identifier }) => {
+const MarketSkillItem = memo<DiscoverSkillItem & { showLobeHubTag?: boolean }>(
+  ({ name, icon, description, identifier, showLobeHubTag }) => {
   const { t } = useTranslation('plugin');
   const { t: tc } = useTranslation('common');
   const [detailOpen, setDetailOpen] = useState(false);
@@ -141,7 +143,9 @@ const MarketSkillItem = memo<DiscoverSkillItem>(({ name, icon, description, iden
               <span className={styles.title} onClick={() => setDetailOpen(true)}>
                 {name}
               </span>
-              <Tag icon={<Icon icon={SkillsIcon} />} size={'small'} />
+              <Tag icon={<Icon icon={SkillsIcon} />} size={'small'}>
+                {showLobeHubTag ? LOBEHUB_REMOTE_TAG : undefined}
+              </Tag>
             </Flexbox>
             {description && <span className={itemStyles.description}>{description}</span>}
           </Flexbox>
@@ -163,7 +167,8 @@ const MarketSkillItem = memo<DiscoverSkillItem>(({ name, icon, description, iden
       </Modal>
     </>
   );
-});
+  },
+);
 
 MarketSkillItem.displayName = 'MarketSkillItem';
 

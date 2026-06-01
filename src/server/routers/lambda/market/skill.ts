@@ -7,6 +7,8 @@ import { marketUserInfo, serverDatabase } from '@/libs/trpc/lambda/middleware';
 import { MarketService } from '@/server/services/market';
 import { SkillSorts } from '@/types/discover';
 
+import { createPublicMarketService } from './publicServices';
+
 const log = debug('lambda-router:market:skill');
 
 // Public procedure with optional user info for trusted client token
@@ -20,6 +22,7 @@ const marketProcedure = publicProcedure
           accessToken: ctx.marketAccessToken,
           userInfo: ctx.marketUserInfo,
         }),
+        publicMarketService: createPublicMarketService(ctx),
       },
     });
   });
@@ -91,7 +94,7 @@ export const skillRouter = router({
       log('getSkillList input: %O', input);
 
       try {
-        return await ctx.marketService.searchSkill(input ?? {});
+        return await ctx.publicMarketService.searchSkill(input ?? {});
       } catch (error) {
         log('Error fetching skill list: %O', error);
         throw new TRPCError({

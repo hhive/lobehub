@@ -68,7 +68,7 @@ describe('useNavLayout', () => {
     const communityItem = result.current.bottomMenuItems.find((item) => item.key === 'community');
 
     expect(communityItem?.hidden).toBe(false);
-    expect(communityItem?.url).toBe('/community/skill');
+    expect(communityItem?.url).toBe('/community/agent');
   });
 
   it('names the generation sidebar item as image generation', () => {

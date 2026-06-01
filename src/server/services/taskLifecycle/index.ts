@@ -34,6 +34,7 @@ import { SystemAgentService } from '@/server/services/systemAgent';
 import { TaskReviewService } from '@/server/services/taskReview';
 import { createTaskSchedulerModule } from '@/server/services/taskScheduler';
 
+import { deliverBriefToAgentBots } from './briefDelivery';
 import {
   isTrivialAssistantContent,
   selectBriefPriority,
@@ -552,7 +553,7 @@ export class TaskLifecycleService {
       // default actions — see DEFAULT_BRIEF_ACTIONS comment.
       const actions = briefType === 'result' ? null : (DEFAULT_BRIEF_ACTIONS[briefType] ?? null);
 
-      await this.briefModel.create({
+      const brief = await this.briefModel.create({
         actions,
         agentId: currentTask.assigneeAgentId || undefined,
         artifacts,
@@ -563,6 +564,13 @@ export class TaskLifecycleService {
         topicId,
         trigger: 'task',
         type: briefType,
+      });
+
+      await deliverBriefToAgentBots({
+        brief,
+        db: this.db,
+        task: currentTask,
+        userId: this.userId,
       });
 
       log('synthesize: brief created task=%s topic=%s type=%s', taskIdentifier, topicId, briefType);

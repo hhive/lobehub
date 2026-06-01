@@ -86,7 +86,7 @@ export const useNavLayout = (): NavLayout => {
           icon: getRouteById('community')!.icon,
           key: SidebarTabKey.Community,
           title: t('tab.community'),
-          url: isAdmin ? '/community' : '/community/skill',
+          url: '/community/agent',
         },
         {
           icon: getRouteById('resource')!.icon,
@@ -101,7 +101,7 @@ export const useNavLayout = (): NavLayout => {
           url: '/memory',
         },
       ] as NavItem[],
-    [t, showMarket, isAdmin],
+    [t, showMarket],
   );
 
   const footer = useMemo(

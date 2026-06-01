@@ -36,10 +36,10 @@ describe('shouldEmitTopicBrief', () => {
     expect(result.reason).toBe('review-config-enabled');
   });
 
-  it("returns 'unknown' for heartbeat ticks (defers to LLM — most are noise but some warrant surfacing)", () => {
+  it("returns 'yes' for heartbeat ticks with substantive content", () => {
     const result = shouldEmitTopicBrief(baseInput({ task: { automationMode: 'heartbeat' } }));
-    expect(result.emit).toBe('unknown');
-    expect(result.reason).toBe('heartbeat-needs-judge');
+    expect(result.emit).toBe('yes');
+    expect(result.reason).toBe('heartbeat-tick');
   });
 
   it("returns 'yes' on every schedule tick (contractual daily brief)", () => {
@@ -67,15 +67,16 @@ describe('shouldEmitTopicBrief', () => {
     expect(result.reason).toBe('needs-llm-judge');
   });
 
-  it("returns 'unknown' for heartbeat even when other conditions look fine", () => {
+  it("returns 'no' for heartbeat ticks with trivial content", () => {
     const result = shouldEmitTopicBrief(
       baseInput({
         hasReviewConfigEnabled: false,
-        isTrivialContent: false,
+        isTrivialContent: true,
         task: { automationMode: 'heartbeat' },
       }),
     );
-    expect(result.emit).toBe('unknown');
+    expect(result.emit).toBe('no');
+    expect(result.reason).toBe('trivial-heartbeat');
   });
 });
 

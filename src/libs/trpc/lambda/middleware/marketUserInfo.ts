@@ -7,6 +7,7 @@ import { trpc } from '../init';
 
 interface ContextWithServerDB {
   marketAccessToken?: string;
+  marketM2MAccessToken?: string;
   serverDB?: LobeChatDatabase;
   userId?: string | null;
 }
@@ -21,7 +22,7 @@ export const marketUserInfo = trpc.middleware(async (opts) => {
   // If userId or serverDB is not available, skip fetching user info
   if (!ctx.userId || !ctx.serverDB) {
     return opts.next({
-      ctx: { marketUserInfo: undefined },
+      ctx: { marketM2MAccessToken: ctx.marketAccessToken, marketUserInfo: undefined },
     });
   }
 
@@ -30,7 +31,7 @@ export const marketUserInfo = trpc.middleware(async (opts) => {
 
     if (!user || !user.email) {
       return opts.next({
-        ctx: { marketUserInfo: undefined },
+        ctx: { marketM2MAccessToken: ctx.marketAccessToken, marketUserInfo: undefined },
       });
     }
 
@@ -51,13 +52,14 @@ export const marketUserInfo = trpc.middleware(async (opts) => {
     return opts.next({
       ctx: {
         marketAccessToken,
+        marketM2MAccessToken: ctx.marketAccessToken,
         marketUserInfo,
       },
     });
   } catch {
     // If fetching user info fails, continue without it
     return opts.next({
-      ctx: { marketUserInfo: undefined },
+      ctx: { marketM2MAccessToken: ctx.marketAccessToken, marketUserInfo: undefined },
     });
   }
 });

@@ -8,6 +8,14 @@ vi.mock('@/server/services/queue/impls', () => ({
   isQueueAgentRuntimeEnabled: vi.fn(() => false), // Default: local mode
 }));
 
+const publishJSON = vi.fn();
+
+vi.mock('@upstash/qstash', () => ({
+  Client: vi.fn(() => ({
+    publishJSON,
+  })),
+}));
+
 const { isQueueAgentRuntimeEnabled } = await import('@/server/services/queue/impls');
 
 describe('HookDispatcher', () => {
@@ -30,6 +38,7 @@ describe('HookDispatcher', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    publishJSON.mockReset();
   });
 
   describe('register', () => {
@@ -256,6 +265,30 @@ describe('HookDispatcher', () => {
       await dispatcher.dispatch(operationId, 'onComplete', makeEvent(), serialized);
 
       expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should deliver qstash webhooks for relative URLs through public APP_URL', async () => {
+      process.env.APP_URL = 'https://public.example.com';
+      process.env.INTERNAL_APP_URL = 'http://127.0.0.1:3210';
+      process.env.QSTASH_TOKEN = 'qstash-token';
+
+      dispatcher.register(operationId, [
+        {
+          handler: vi.fn(),
+          id: 'qstash-hook',
+          type: 'onComplete',
+          webhook: { delivery: 'qstash', url: '/api/workflows/task/on-topic-complete' },
+        },
+      ]);
+
+      const serialized = dispatcher.getSerializedHooks(operationId);
+      await dispatcher.dispatch(operationId, 'onComplete', makeEvent(), serialized);
+
+      expect(publishJSON).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://public.example.com/api/workflows/task/on-topic-complete',
+        }),
+      );
     });
   });
 

@@ -21,6 +21,7 @@ import { agentRouter } from './agent';
 import { agentGroupRouter } from './agentGroup';
 import { credsRouter } from './creds';
 import { oidcRouter } from './oidc';
+import { createPublicDiscoverService } from './publicServices';
 import { skillRouter } from './skill';
 import { socialRouter } from './social';
 import { socialProfileRouter } from './socialProfile';
@@ -41,6 +42,7 @@ const marketProcedure = publicProcedure
           accessToken: ctx.marketAccessToken,
           userInfo: ctx.marketUserInfo,
         }),
+        publicDiscoverService: createPublicDiscoverService(ctx),
         marketService: new MarketService({
           accessToken: ctx.marketAccessToken,
           userInfo: ctx.marketUserInfo,
@@ -177,7 +179,7 @@ export const marketRouter = router({
       log('getAssistantList input: %O', input);
 
       try {
-        return await ctx.discoverService.getAssistantList(input);
+        return await ctx.publicDiscoverService.getAssistantList(input);
       } catch (error) {
         log('Error fetching assistant list: %O', error);
         throw new TRPCError({

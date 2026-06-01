@@ -24,6 +24,7 @@ import InstallationIcon from '@/components/MCPDepsIcon';
 import OfficialIcon from '@/components/OfficialIcon';
 import PublishedTime from '@/components/PublishedTime';
 import Scores from '@/features/MCP/Scores';
+import { LOBEHUB_REMOTE_TAG } from '@/features/SkillStore/SkillList/lobehubRemote';
 import { discoverService } from '@/services/discover';
 import { type DiscoverMcpItem } from '@/types/discover';
 
@@ -64,7 +65,7 @@ const styles = createStaticStyles(({ css, cssVar }) => {
   };
 });
 
-const McpItem = memo<DiscoverMcpItem>(
+const McpItem = memo<DiscoverMcpItem & { showLobeHubTag?: boolean }>(
   ({
     name,
     icon,
@@ -84,6 +85,7 @@ const McpItem = memo<DiscoverMcpItem>(
     connectionType,
     installCount,
     github,
+    showLobeHubTag,
   }) => {
     const { t } = useTranslation('discover');
     const navigate = useNavigate();
@@ -148,7 +150,7 @@ const McpItem = memo<DiscoverMcpItem>(
                   overflow: 'hidden',
                 }}
               >
-                <Link style={{ color: 'inherit', overflow: 'hidden' }} to={link}>
+                <Link style={{ color: 'inherit', flex: 1, minWidth: 0, overflow: 'hidden' }} to={link}>
                   <Text ellipsis as={'h2'} className={styles.title}>
                     {name}
                   </Text>
@@ -157,6 +159,11 @@ const McpItem = memo<DiscoverMcpItem>(
                   <Tooltip title={t('isOfficial')}>
                     <OfficialIcon />
                   </Tooltip>
+                )}
+                {showLobeHubTag && (
+                  <Tag size={'small'} style={{ flex: 'none' }}>
+                    {LOBEHUB_REMOTE_TAG}
+                  </Tag>
                 )}
               </Flexbox>
               {author && <div className={styles.author}>{author}</div>}

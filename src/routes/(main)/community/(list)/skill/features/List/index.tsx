@@ -1,8 +1,14 @@
 'use client';
 
 import { Grid } from '@lobehub/ui';
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 
+import {
+  filterLobeHubRemoteItems,
+  isRemoteMarketSkill,
+} from '@/features/SkillStore/SkillList/lobehubRemote';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 import { type DiscoverSkillItem } from '@/types/discover';
 
 import SkillEmpty from '../../../../features/SkillEmpty';
@@ -14,12 +20,18 @@ interface SkillListProps {
 }
 
 const SkillList = memo<SkillListProps>(({ data = [], rows = 3 }) => {
-  if (data.length === 0) return <SkillEmpty />;
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
+  const visibleData = useMemo(
+    () => filterLobeHubRemoteItems(data, isAdmin, isRemoteMarketSkill),
+    [data, isAdmin],
+  );
+
+  if (visibleData.length === 0) return <SkillEmpty />;
 
   return (
     <Grid rows={rows} width={'100%'}>
-      {data.map((item, index) => (
-        <Item key={index} {...item} />
+      {visibleData.map((item, index) => (
+        <Item key={index} showLobeHubTag={isRemoteMarketSkill(item)} {...item} />
       ))}
     </Grid>
   );

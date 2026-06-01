@@ -30,6 +30,8 @@ import type {
   ReplyToThreadState,
   SearchMessagesParams,
   SearchMessagesState,
+  SendDirectMessageParams,
+  SendDirectMessageState,
   SendMessageParams,
   SendMessageState,
   UnpinMessageParams,
@@ -81,6 +83,20 @@ export class FeishuMessageService implements MessageRuntimeService {
   }
 
   // ==================== Core Message Operations ====================
+
+  sendDirectMessage = async (
+    params: SendDirectMessageParams,
+  ): Promise<SendDirectMessageState> => {
+    const result = await this.api.sendDirectMessage(params.userId, params.content);
+    if (params.attachments?.length) {
+      await sendFeishuAttachments(this.api, result.chatId || params.userId, params.attachments);
+    }
+    return {
+      channelId: result.chatId,
+      messageId: result.messageId,
+      platform: this.platformName,
+    };
+  };
 
   sendMessage = async (params: SendMessageParams): Promise<SendMessageState> => {
     // Lark/Feishu has no composite "text + media" message, so the text leg

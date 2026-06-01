@@ -29,6 +29,7 @@ import { changelogRouter } from './changelog';
 import { chunkRouter } from './chunk';
 import { comfyuiRouter } from './comfyui';
 import { configRouter } from './config';
+import { communityAssistantRestrictionRouter } from './communityAssistantRestriction';
 import { deviceRouter } from './device';
 import { documentRouter } from './document';
 import { exporterRouter } from './exporter';
@@ -89,6 +90,7 @@ export const lambdaRouter = router({
   chunk: chunkRouter,
   comfyui: comfyuiRouter,
   config: configRouter,
+  communityAssistantRestriction: communityAssistantRestrictionRouter,
   device: deviceRouter,
   document: documentRouter,
   exporter: exporterRouter,

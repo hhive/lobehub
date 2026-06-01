@@ -37,6 +37,29 @@ export class LarkApiClient {
     return { messageId: data.data.message_id, raw: data.data };
   }
 
+  async sendDirectMessage(
+    userId: string,
+    text: string,
+  ): Promise<{ chatId?: string; messageId: string; raw: any }> {
+    const receiveIdType = userId.includes('@')
+      ? 'email'
+      : userId.startsWith('ou_')
+        ? 'open_id'
+        : userId.startsWith('on_')
+          ? 'union_id'
+          : 'user_id';
+    const data = await this.call('POST', `/im/v1/messages?receive_id_type=${receiveIdType}`, {
+      content: JSON.stringify({ text: this.truncateText(text) }),
+      msg_type: 'text',
+      receive_id: userId,
+    });
+    return {
+      chatId: data.data?.chat_id,
+      messageId: data.data.message_id,
+      raw: data.data,
+    };
+  }
+
   async editMessage(messageId: string, text: string): Promise<{ raw: any }> {
     const data = await this.call('PUT', `/im/v1/messages/${messageId}`, {
       content: JSON.stringify({ text: this.truncateText(text) }),

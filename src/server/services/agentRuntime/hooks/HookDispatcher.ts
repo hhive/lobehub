@@ -24,10 +24,13 @@ export async function deliverWebhook(
 ): Promise<void> {
   const { url, delivery = 'fetch' } = webhook;
 
-  // Resolve URL: relative paths joined with INTERNAL_APP_URL or APP_URL
-  const resolvedUrl = url.startsWith('http')
-    ? url
-    : urlJoin(process.env.INTERNAL_APP_URL || process.env.APP_URL || '', url);
+  // QStash runs outside this host, so it must receive a public callback URL.
+  // Direct fetch delivery stays internal-first to avoid proxy/CDN round trips.
+  const baseUrl =
+    delivery === 'qstash'
+      ? process.env.APP_URL || process.env.INTERNAL_APP_URL || ''
+      : process.env.INTERNAL_APP_URL || process.env.APP_URL || '';
+  const resolvedUrl = url.startsWith('http') ? url : urlJoin(baseUrl, url);
 
   if (delivery === 'qstash') {
     try {

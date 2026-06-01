@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import urlJoin from 'url-join';
 
 import PublishedTime from '@/components/PublishedTime';
+import { LOBEHUB_REMOTE_TAG } from '@/features/SkillStore/SkillList/lobehubRemote';
 import { discoverService } from '@/services/discover';
 import { type DiscoverSkillItem } from '@/types/discover';
 
@@ -47,7 +48,7 @@ const styles = createStaticStyles(({ css, cssVar }) => {
   };
 });
 
-const SkillItem = memo<DiscoverSkillItem>(
+const SkillItem = memo<DiscoverSkillItem & { showLobeHubTag?: boolean }>(
   ({
     name,
     icon,
@@ -59,10 +60,10 @@ const SkillItem = memo<DiscoverSkillItem>(
     updatedAt,
     installCount,
     github,
-    homepage,
     ratingAvg,
     commentCount,
     resourcesCount = 0,
+    showLobeHubTag,
   }) => {
     const { t } = useTranslation('discover');
     const navigate = useNavigate();
@@ -127,11 +128,16 @@ const SkillItem = memo<DiscoverSkillItem>(
                   overflow: 'hidden',
                 }}
               >
-                <Link style={{ color: 'inherit', overflow: 'hidden' }} to={link}>
+                <Link style={{ color: 'inherit', flex: 1, minWidth: 0, overflow: 'hidden' }} to={link}>
                   <Text ellipsis as={'h2'} className={styles.title}>
                     {name}
                   </Text>
                 </Link>
+                {showLobeHubTag && (
+                  <Tag size={'small'} style={{ flex: 'none' }}>
+                    {LOBEHUB_REMOTE_TAG}
+                  </Tag>
+                )}
               </Flexbox>
               <Flexbox horizontal align={'center'} className={styles.author} gap={8}>
                 {Boolean(ratingAvg) && (

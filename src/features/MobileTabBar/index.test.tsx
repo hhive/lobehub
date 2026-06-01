@@ -79,11 +79,11 @@ describe('MobileTabBar', () => {
     expect(screen.getByText('tab.community')).toBeInTheDocument();
   });
 
-  it('opens the skill community page for non-admin users', () => {
+  it('opens the assistant community page for non-admin users', () => {
     render(<MobileTabBar />);
 
     screen.getByText('tab.community').click();
 
-    expect(mocks.push).toHaveBeenCalledWith('/community/skill');
+    expect(mocks.push).toHaveBeenCalledWith('/community/agent');
   });
 });

@@ -36,16 +36,13 @@ export interface ShouldEmitTopicBriefResult {
  *   error brief inline, so this rule only fires once that path is folded
  *   into `synthesizeTopicBrief`. The verdict is correct ahead of time.
  * - `'no'` — review-judge already produced a brief upstream, review is
- *   configured (judge owns the next run), or trivial content on a manual
- *   tick. Heartbeat used to be `'no'` here too, but is now deferred to the
- *   judge: most heartbeat ticks are mid-loop noise, but the occasional one
- *   surfaces something the user would want to see, and that judgment
- *   requires reading the content.
+ *   configured (judge owns the next run), trivial content on a manual tick,
+ *   or trivial content on a heartbeat tick. Substantive heartbeat ticks emit
+ *   because heartbeat automation is a user-requested recurring delivery.
  *
  * Non-conclusive branch:
- * - `'unknown'` — heartbeat tick, OR non-trivial content on a manual /
- *   non-scheduled task with no review configured. Caller defers to
- *   `chainJudgeBriefEmit`.
+ * - `'unknown'` — non-trivial content on a manual / non-scheduled task with
+ *   no review configured. Caller defers to `chainJudgeBriefEmit`.
  */
 export const shouldEmitTopicBrief = (
   input: ShouldEmitTopicBriefInput,
@@ -56,7 +53,9 @@ export const shouldEmitTopicBrief = (
   // but if review is configured we still defer to it on subsequent runs.
   if (input.hasReviewConfigEnabled) return { emit: 'no', reason: 'review-config-enabled' };
   if (input.task?.automationMode === 'heartbeat') {
-    return { emit: 'unknown', reason: 'heartbeat-needs-judge' };
+    return input.isTrivialContent
+      ? { emit: 'no', reason: 'trivial-heartbeat' }
+      : { emit: 'yes', reason: 'heartbeat-tick' };
   }
   if (input.task?.automationMode === 'schedule') {
     return { emit: 'yes', reason: 'scheduled-tick' };

@@ -9,8 +9,6 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from '@/libs/router/navigation';
 import { SidebarTabKey } from '@/store/global/initialState';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
-import { useUserStore } from '@/store/user';
-import { userProfileSelectors } from '@/store/user/selectors';
 
 const styles = createStaticStyles(({ css }) => ({
   active: css`
@@ -32,7 +30,6 @@ export default memo<Props>(({ className, tabBarKey }) => {
     router.push('/settings/provider/all');
   }, [router]);
   const { showMarket } = useServerConfigStore(featureFlagsSelectors);
-  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const items: TabBarProps['items'] = useMemo(
     () =>
@@ -53,7 +50,7 @@ export default memo<Props>(({ className, tabBarKey }) => {
             ),
             key: SidebarTabKey.Community,
             onClick: () => {
-              router.push(isAdmin ? '/community' : '/community/skill');
+              router.push('/community/agent');
             },
             title: t('tab.community'),
           },
@@ -66,7 +63,7 @@ export default memo<Props>(({ className, tabBarKey }) => {
           title: t('tab.setting'),
         },
       ].filter(Boolean) as TabBarProps['items'],
-    [t, router, isAdmin, showMarket, openSettings],
+    [t, router, showMarket, openSettings],
   );
 
   return <TabBar safeArea activeKey={tabBarKey} className={className} items={items} />;

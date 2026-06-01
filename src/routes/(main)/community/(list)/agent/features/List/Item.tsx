@@ -1,6 +1,6 @@
-import { Avatar, Block, Flexbox, Icon, Tag, Text } from '@lobehub/ui';
+import { Avatar, Block, Button, Flexbox, Icon, Tag, Text } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
-import { ClockIcon } from 'lucide-react';
+import { ClockIcon, ShieldAlert } from 'lucide-react';
 import qs from 'query-string';
 import React, { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { discoverService } from '@/services/discover';
 import { type AssistantMarketSource, type DiscoverAssistantItem } from '@/types/discover';
 
+import { RESTRICTED_ASSISTANT_TAG } from './restrictedAssistant';
 import TokenTag from './TokenTag';
 
 const styles = createStaticStyles(({ css, cssVar }) => {
@@ -53,7 +54,13 @@ const styles = createStaticStyles(({ css, cssVar }) => {
   };
 });
 
-const AssistantItem = memo<DiscoverAssistantItem>(
+interface AssistantItemProps extends DiscoverAssistantItem {
+  onRestrictedChange?: (restricted: boolean) => void;
+  restricted?: boolean;
+  showRestrictedTag?: boolean;
+}
+
+const AssistantItem = memo<AssistantItemProps>(
   ({
     createdAt,
     updatedAt,
@@ -70,6 +77,9 @@ const AssistantItem = memo<DiscoverAssistantItem>(
     backgroundColor,
     userName,
     type,
+    onRestrictedChange,
+    restricted = false,
+    showRestrictedTag,
   }) => {
     const navigate = useNavigate();
     const { source } = useQuery() as { source?: AssistantMarketSource };
@@ -107,6 +117,15 @@ const AssistantItem = memo<DiscoverAssistantItem>(
 
       navigate(link);
     }, [identifier, link, navigate]);
+
+    const handleRestrictedClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onRestrictedChange?.(!restricted);
+      },
+      [onRestrictedChange, restricted],
+    );
 
     return (
       <Block
@@ -180,6 +199,17 @@ const AssistantItem = memo<DiscoverAssistantItem>(
                     {title}
                   </Text>
                 </Link>
+                {showRestrictedTag && <Tag color="error">{RESTRICTED_ASSISTANT_TAG}</Tag>}
+                {onRestrictedChange && (
+                  <Button
+                    icon={<Icon icon={ShieldAlert} size={14} />}
+                    size={'small'}
+                    type={'text'}
+                    onClick={handleRestrictedClick}
+                  >
+                    {restricted ? '取消限制级' : '标记限制级'}
+                  </Button>
+                )}
               </Flexbox>
               {author && (
                 <div

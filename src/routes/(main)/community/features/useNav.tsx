@@ -63,11 +63,15 @@ export const useNav = () => {
         key: DiscoverTab.Assistants,
         label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.assistant')}</div>,
       },
-      {
-        icon: <SkillsIcon className={'anticon'} size={ICON_SIZE} />,
-        key: DiscoverTab.Skills,
-        label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.skill')}</div>,
-      },
+      ...(isAdmin
+        ? [
+            {
+              icon: <SkillsIcon className={'anticon'} size={ICON_SIZE} />,
+              key: DiscoverTab.Skills,
+              label: <div style={{ color: 'inherit', display: 'inline' }}>{t('tab.skill')}</div>,
+            },
+          ]
+        : []),
     ],
     [isAdmin, t],
   );

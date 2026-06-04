@@ -70,7 +70,7 @@ describe('community sidebar nav', () => {
     render(<Nav />);
 
     expect(screen.getByText('tab.assistant')).toBeInTheDocument();
-    expect(screen.getByText('tab.skill')).toBeInTheDocument();
+    expect(screen.queryByText('tab.skill')).not.toBeInTheDocument();
     expect(screen.queryByText('tab.home')).not.toBeInTheDocument();
     expect(screen.queryByText('MCP')).not.toBeInTheDocument();
     expect(screen.queryByText('tab.model')).not.toBeInTheDocument();

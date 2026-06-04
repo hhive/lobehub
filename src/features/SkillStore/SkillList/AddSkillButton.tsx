@@ -61,13 +61,13 @@ const AddSkillButton = () => {
             icon: <Icon icon={Link} />,
             key: 'importUrl',
             label: <MenuLabel desc={t('tab.importFromUrl.desc')} title={t('tab.importFromUrl')} />,
-            onClick: () => setUrlModal(true),
+            onClick: () => isAdmin && setUrlModal(true),
           },
           {
             icon: <Icon icon={FileArchive} />,
             key: 'uploadZip',
             label: <MenuLabel desc={t('tab.uploadZip.desc')} title={t('tab.uploadZip')} />,
-            onClick: () => setUploadModal(true),
+            onClick: () => isAdmin && setUploadModal(true),
           },
           ...(isAdmin
             ? [

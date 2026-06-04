@@ -6,6 +6,9 @@ import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
+
 import { ScrollSignalProvider } from './ScrollSignalContext';
 import SkillActivateMode from './SkillActivateMode';
 import ToolsList, { toolsListStyles } from './ToolsList';
@@ -59,6 +62,7 @@ const PopoverContent = memo<PopoverContentProps>(({ items, onOpenStore }) => {
   const { t } = useTranslation('setting');
   const navigate = useNavigate();
   const [searchKeyword, setSearchKeyword] = useState('');
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const { close: closePopover } = usePopoverContext();
 
@@ -91,21 +95,23 @@ const PopoverContent = memo<PopoverContentProps>(({ items, onOpenStore }) => {
         <ToolsList items={filteredItems} />
       </ScrollSignalProvider>
       <div className={styles.footer}>
-        <div
-          className={toolsListStyles.item}
-          role="button"
-          tabIndex={0}
-          onClick={() => {
-            closePopover();
-            onOpenStore();
-          }}
-        >
-          <div className={toolsListStyles.itemIcon}>
-            <Icon icon={Store} size={20} />
+        {isAdmin && (
+          <div
+            className={toolsListStyles.item}
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              closePopover();
+              onOpenStore();
+            }}
+          >
+            <div className={toolsListStyles.itemIcon}>
+              <Icon icon={Store} size={20} />
+            </div>
+            <div className={toolsListStyles.itemContent}>{t('skillStore.title')}</div>
+            <Icon className={styles.trailingIcon} icon={ChevronRight} size={16} />
           </div>
-          <div className={toolsListStyles.itemContent}>{t('skillStore.title')}</div>
-          <Icon className={styles.trailingIcon} icon={ChevronRight} size={16} />
-        </div>
+        )}
         <div
           className={toolsListStyles.item}
           role="button"

@@ -17,6 +17,12 @@ export const RECOMMENDED_SKILLS: RecommendedSkillItem[] = [
   { id: 'lobe-task', type: RecommendedSkillType.Builtin },
   { id: 'lobe-agent-documents', type: RecommendedSkillType.Builtin },
   { id: 'lobe-message', type: RecommendedSkillType.Builtin },
+  // Workflow skills shown below the original default builtin list
+  { id: 'using-superpowers', type: RecommendedSkillType.Builtin },
+  { id: 'brainstorming', type: RecommendedSkillType.Builtin },
+  { id: 'writing-plans', type: RecommendedSkillType.Builtin },
+  { id: 'executing-plans', type: RecommendedSkillType.Builtin },
+  { id: 'requesting-code-review', type: RecommendedSkillType.Builtin },
   // LobeHub skills
   { id: 'notion', type: RecommendedSkillType.Lobehub },
   { id: 'twitter', type: RecommendedSkillType.Lobehub },

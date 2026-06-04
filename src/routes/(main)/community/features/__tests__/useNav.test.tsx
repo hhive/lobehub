@@ -42,11 +42,12 @@ describe('community useNav', () => {
 
     const keys = result.current.items.map((item: any) => item.key);
 
-    expect(keys).toEqual([DiscoverTab.Assistants, DiscoverTab.Skills]);
+    expect(keys).toEqual([DiscoverTab.Assistants]);
     expect(keys).not.toContain(DiscoverTab.Home);
     expect(keys).not.toContain(DiscoverTab.Mcp);
     expect(keys).not.toContain(DiscoverTab.Models);
     expect(keys).not.toContain(DiscoverTab.Providers);
+    expect(keys).not.toContain(DiscoverTab.Skills);
   });
 
   it('keeps all community tabs visible for admin users', () => {

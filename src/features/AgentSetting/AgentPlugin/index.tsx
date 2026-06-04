@@ -17,6 +17,8 @@ import { useFetchInstalledPlugins } from '@/hooks/useFetchInstalledPlugins';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
 import { pluginHelpers, useToolStore } from '@/store/tool';
 import { toolSelectors } from '@/store/tool/selectors';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 
 import { useStore } from '../store';
 import AddPluginButton from './AddPluginButton';
@@ -28,10 +30,12 @@ const AgentPlugin = memo(() => {
   const { t } = useTranslation('setting');
 
   const navigate = useNavigate();
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const handleOpenStore = useCallback(() => {
+    if (!isAdmin) return;
     createSkillStoreModal();
-  }, []);
+  }, [isAdmin]);
 
   const [userEnabledPlugins, toggleAgentPlugin] = useStore((s) => [
     s.config.plugins || [],
@@ -116,7 +120,7 @@ const AgentPlugin = memo(() => {
           />
         </Tooltip>
       ) : null}
-      {showMarket ? (
+      {showMarket && isAdmin ? (
         <Tooltip title={t('plugin.store')}>
           <Button
             icon={Store}

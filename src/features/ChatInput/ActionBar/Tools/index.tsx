@@ -6,6 +6,8 @@ import { createSkillStoreModal } from '@/features/SkillStore';
 import { useModelSupportToolUse } from '@/hooks/useModelSupportToolUse';
 import { useAgentStore } from '@/store/agent';
 import { agentByIdSelectors } from '@/store/agent/selectors';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 
 import { useAgentId } from '../../hooks/useAgentId';
 import Action from '../components/Action';
@@ -19,6 +21,7 @@ const Tools = memo(() => {
   const agentId = useAgentId();
   const model = useAgentStore((s) => agentByIdSelectors.getAgentModelById(agentId)(s));
   const provider = useAgentStore((s) => agentByIdSelectors.getAgentModelProviderById(agentId)(s));
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const enableFC = useModelSupportToolUse(model, provider);
 
@@ -26,7 +29,7 @@ const Tools = memo(() => {
     createSkillStoreModal();
   }, []);
 
-  if (!enableFC)
+  if (!enableFC || !isAdmin)
     return <Action disabled icon={Blocks} showTooltip={true} title={t('tools.disabled')} />;
 
   return (

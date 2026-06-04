@@ -11,6 +11,8 @@ import { createSkillStoreModal } from '@/features/SkillStore';
 import { useGlobalStore } from '@/store/global';
 import { serverConfigSelectors, useServerConfigStore } from '@/store/serverConfig';
 import { useToolStore } from '@/store/tool';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
 
 // Bump this id when the banner content changes so dismissing the old
 // variant does not hide the new one.
@@ -84,6 +86,7 @@ const SkillInstallBanner = memo(() => {
 
   const isLobehubSkillEnabled = useServerConfigStore(serverConfigSelectors.enableLobehubSkill);
   const isKlavisEnabled = useServerConfigStore(serverConfigSelectors.enableKlavis);
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
   const updateSystemStatus = useGlobalStore((s) => s.updateSystemStatus);
 
@@ -132,7 +135,11 @@ const SkillInstallBanner = memo(() => {
   );
 
   return (
-    <div className={styles.banner} data-testid="skill-install-banner" onClick={handleOpenStore}>
+    <div
+      className={styles.banner}
+      data-testid="skill-install-banner"
+      onClick={isAdmin ? handleOpenStore : undefined}
+    >
       <Flexbox horizontal align="center" gap={4}>
         <Icon className={styles.icon} icon={Blocks} size={18} />
         <span className={styles.text}>{t('skillInstallBanner.title')}</span>
@@ -155,12 +162,14 @@ const SkillInstallBanner = memo(() => {
             ))}
           </div>
         )}
-        <ActionIcon
-          icon={X}
-          size="small"
-          title={t('skillInstallBanner.dismiss')}
-          onClick={handleDismiss}
-        />
+        {isAdmin && (
+          <ActionIcon
+            icon={X}
+            size="small"
+            title={t('skillInstallBanner.dismiss')}
+            onClick={handleDismiss}
+          />
+        )}
       </Flexbox>
     </div>
   );

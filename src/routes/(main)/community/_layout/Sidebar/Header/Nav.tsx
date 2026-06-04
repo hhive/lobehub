@@ -53,12 +53,16 @@ const Nav = memo(() => {
         title: t('tab.assistant'),
         url: '/community/agent',
       },
-      {
-        icon: SkillsIcon,
-        key: DiscoverTab.Skills,
-        title: t('tab.skill'),
-        url: '/community/skill',
-      },
+      ...(isAdmin
+        ? [
+            {
+              icon: SkillsIcon,
+              key: DiscoverTab.Skills,
+              title: t('tab.skill'),
+              url: '/community/skill',
+            },
+          ]
+        : []),
       ...(isAdmin
         ? [
             {

@@ -1,7 +1,6 @@
 'use client';
 
 import { Flexbox, Segmented } from '@lobehub/ui';
-import { type SegmentedOptions } from 'antd/es/segmented';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -29,13 +28,6 @@ export const SkillStoreContent = () => {
   const [lobehubKeywords, setLobehubKeywords] = useState('');
   const [skillKeywords, setSkillKeywords] = useState('');
 
-  const options: SegmentedOptions = [
-    { label: t('skillStore.tabs.lobehub'), value: SkillStoreTab.LobeHub },
-    { label: t('skillStore.tabs.skills'), value: SkillStoreTab.Skills },
-    ...(isAdmin ? [{ label: t('skillStore.tabs.mcp'), value: SkillStoreTab.MCP }] : []),
-    { label: t('skillStore.tabs.custom'), value: SkillStoreTab.Custom },
-  ];
-
   const isLobeHub = activeTab === SkillStoreTab.LobeHub;
   const isSkills = activeTab === SkillStoreTab.Skills;
   const isMCP = activeTab === SkillStoreTab.MCP;
@@ -47,13 +39,22 @@ export const SkillStoreContent = () => {
         <Flexbox horizontal align={'center'} gap={8}>
           <Segmented
             block
-            options={options}
             style={{ flex: 1 }}
             value={activeTab}
             variant={'filled'}
+            options={
+              isAdmin
+                ? [
+                    { label: t('skillStore.tabs.lobehub'), value: SkillStoreTab.LobeHub },
+                    { label: t('skillStore.tabs.skills'), value: SkillStoreTab.Skills },
+                    { label: t('skillStore.tabs.mcp'), value: SkillStoreTab.MCP },
+                    { label: t('skillStore.tabs.custom'), value: SkillStoreTab.Custom },
+                  ]
+                : [{ label: t('skillStore.tabs.lobehub'), value: SkillStoreTab.LobeHub }]
+            }
             onChange={(v) => setActiveTab(v as SkillStoreTab)}
           />
-          <AddSkillButton />
+          {isAdmin && <AddSkillButton />}
         </Flexbox>
         <Search
           activeTab={activeTab}
@@ -65,17 +66,21 @@ export const SkillStoreContent = () => {
         <Flexbox flex={1} style={{ display: isLobeHub ? 'flex' : 'none', overflow: 'auto' }}>
           <LobeHubList keywords={lobehubKeywords} />
         </Flexbox>
-        <Flexbox flex={1} style={{ display: isSkills ? 'flex' : 'none', overflow: 'auto' }}>
+        {isAdmin && (
+          <Flexbox flex={1} style={{ display: isSkills ? 'flex' : 'none', overflow: 'auto' }}>
           <MarketSkillList keywords={skillKeywords} />
-        </Flexbox>
+          </Flexbox>
+        )}
         {isAdmin && (
           <Flexbox flex={1} style={{ display: isMCP ? 'flex' : 'none', overflow: 'auto' }}>
             <MCPList />
           </Flexbox>
         )}
-        <Flexbox flex={1} style={{ display: isCustom ? 'flex' : 'none', overflow: 'auto' }}>
+        {isAdmin && (
+          <Flexbox flex={1} style={{ display: isCustom ? 'flex' : 'none', overflow: 'auto' }}>
           <CustomList />
-        </Flexbox>
+          </Flexbox>
+        )}
       </Flexbox>
     </Flexbox>
   );

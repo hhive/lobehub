@@ -115,20 +115,6 @@ const getRefreshToken = (): string | null => {
 };
 
 /**
- * Check if the user needs to set up a username (first-time login)
- */
-const checkNeedsProfileSetup = async (username: string): Promise<boolean> => {
-  try {
-    const profile = await lambdaClient.market.user.getUserByUsername.query({ username });
-    // If userName is not set, user needs to complete profile setup
-    return !profile.userName;
-  } catch {
-    // Error fetching profile (e.g., NOT_FOUND), assume needs setup
-    return true;
-  }
-};
-
-/**
  * Market authorization context provider
  */
 export const MarketAuthProvider = ({ children, isDesktop }: MarketAuthProviderProps) => {
@@ -359,19 +345,6 @@ export const MarketAuthProvider = ({ children, isDesktop }: MarketAuthProviderPr
 
       setSession(newSession);
       setStatus('authenticated');
-
-      // Check if user needs to set up profile (first-time login)
-      if (userInfo?.sub) {
-        const needsSetup = await checkNeedsProfileSetup(userInfo.sub);
-        if (needsSetup) {
-          // Wait for next tick to ensure session state is updated before opening modal
-          // This prevents the edge case where accessToken is null when modal opens
-          setTimeout(() => {
-            setIsFirstTimeSetup(true);
-            setShowProfileSetupModal(true);
-          }, 0);
-        }
-      }
 
       return userInfo?.accountId ?? null;
     } catch (error) {
@@ -705,22 +678,16 @@ export const MarketAuthProvider = ({ children, isDesktop }: MarketAuthProviderPr
   useEffect(() => {
     const unsubscribe = marketAuthEvents.on('market-unauthorized', async (event) => {
       console.info('[MarketAuth] Received unauthorized event for path:', event.path);
-      // Desktop: do not open community auth / profile modals from background API 401s.
-      // Only attempt a silent token refresh; Lobe cloud re-auth is handled separately (AuthRequiredModal).
-      if (isDesktop) {
-        const refreshed = await refreshToken();
-        if (!refreshed) {
-          console.info(
-            '[MarketAuth] Desktop: market 401 — refresh failed, skipping community sign-in UI',
-          );
-        }
-        return;
+      // Do not open community auth / profile modals from background API 401s.
+      // User-initiated actions still call signIn() directly when Market auth is required.
+      const refreshed = await refreshToken();
+      if (!refreshed) {
+        console.info('[MarketAuth] Market 401 — refresh failed, skipping community sign-in UI');
       }
-      await handleUnauthorized();
     });
 
     return unsubscribe;
-  }, [handleUnauthorized, isDesktop, refreshToken]);
+  }, [refreshToken]);
 
   const contextValue: MarketAuthContextType = {
     checkAndShowClaimableResources,

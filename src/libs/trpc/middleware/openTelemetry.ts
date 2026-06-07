@@ -27,6 +27,50 @@ import { trpc } from '../lambda/init';
 
 const tracer = trace.getTracer('trpc-server');
 
+const HISTORY_DEBUG_PROCEDURES = new Set([
+  'agentDocument.getDocuments',
+  'agentSkills.list',
+  'message.getMessages',
+  'notebook.listDocuments',
+  'plugin.getPlugins',
+  'session.getGroupedSessions',
+  'thread.getThreads',
+  'topic.getTopics',
+  'userMemories.retrieveMemoryForTopic',
+]);
+
+const SLOW_TRPC_LOG_THRESHOLD_MS = 500;
+
+const shouldLogProcedureTiming = (path: string, durationMs: number) =>
+  HISTORY_DEBUG_PROCEDURES.has(path) || durationMs >= SLOW_TRPC_LOG_THRESHOLD_MS;
+
+const logProcedureTiming = ({
+  durationMs,
+  ok,
+  path,
+  requestSize,
+  responseSize,
+  type,
+}: {
+  durationMs: number;
+  ok: boolean;
+  path: string;
+  requestSize?: number;
+  responseSize?: number;
+  type: string;
+}) => {
+  if (!shouldLogProcedureTiming(path, durationMs)) return;
+
+  console.info('[trpc-timing]', {
+    durationMs,
+    ok,
+    path,
+    requestSize,
+    responseSize,
+    type,
+  });
+};
+
 const recordRpcServerMetrics = ({
   attributes,
   durationMs,
@@ -66,18 +110,33 @@ const finalizeSpanWithError = (span: Span, error: unknown) => {
 };
 
 export const openTelemetry = trpc.middleware(async ({ ctx, path, type, next, getRawInput }) => {
+  const startTimestamp = Date.now();
+  const input = getRawInput();
+  const requestSize = getPayloadSize(input);
+
   if (!env.ENABLE_TELEMETRY) {
     diag.debug(name, 'telemetry disabled', env.ENABLE_TELEMETRY);
 
-    return next();
+    const result = await next();
+    const durationMs = Date.now() - startTimestamp;
+    const responseSize = getPayloadSize(result.ok ? result.data : result.error);
+
+    logProcedureTiming({
+      durationMs,
+      ok: result.ok,
+      path,
+      requestSize,
+      responseSize,
+      type,
+    });
+
+    return result;
   }
 
   diag.debug(name, 'tRPC instrumentation', 'incomingRequest');
 
   const spanName = `tRPC ${type.toUpperCase()} ${path}`;
   const baseAttributes = tRPCConventionFromPathAndType(path, type);
-  const input = getRawInput();
-  const requestSize = getPayloadSize(input);
 
   const span = tracer.startSpan(
     spanName,
@@ -93,8 +152,6 @@ export const openTelemetry = trpc.middleware(async ({ ctx, path, type, next, get
     injectSpanTraceHeaders(ctx.resHeaders, span);
   }
 
-  const startTimestamp = Date.now();
-
   try {
     const result = await context.with(trace.setSpan(context.active(), span), async () => next());
     diag.debug(name, 'tRPC instrumentation', 'requestHandled');
@@ -102,6 +159,15 @@ export const openTelemetry = trpc.middleware(async ({ ctx, path, type, next, get
     const responseSize = getPayloadSize(result.ok ? result.data : result.error);
 
     const durationMs = Date.now() - startTimestamp;
+    logProcedureTiming({
+      durationMs,
+      ok: result.ok,
+      path,
+      requestSize,
+      responseSize,
+      type,
+    });
+
     const statusCode = result.ok ? DEFAULT_SUCCESS_STATUS : result.error.code;
     span.setAttribute(TRPCAttribute.RPC_TRPC_STATUS_CODE, statusCode);
 
@@ -130,6 +196,16 @@ export const openTelemetry = trpc.middleware(async ({ ctx, path, type, next, get
     const durationMs = Date.now() - startTimestamp;
     const trpcError = error instanceof TRPCError ? error : undefined;
     const statusCode = trpcError ? trpcError.code : DEFAULT_ERROR_CODE;
+    const responseSize = getPayloadSize(trpcError || error);
+
+    logProcedureTiming({
+      durationMs,
+      ok: false,
+      path,
+      requestSize,
+      responseSize,
+      type,
+    });
 
     span.setAttribute(TRPCAttribute.RPC_TRPC_STATUS_CODE, statusCode);
     finalizeSpanWithError(span, error);
@@ -141,7 +217,7 @@ export const openTelemetry = trpc.middleware(async ({ ctx, path, type, next, get
       }),
       durationMs,
       requestSize,
-      responseSize: getPayloadSize(trpcError ? trpcError : error),
+      responseSize,
     });
 
     diag.error(name, 'tRPC instrumentation', 'metrics recorded with error', error);

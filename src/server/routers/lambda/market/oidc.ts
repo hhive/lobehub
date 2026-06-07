@@ -8,6 +8,8 @@ import { MarketService } from '@/server/services/market';
 
 const log = debug('lambda-router:market:oidc');
 
+const isMarketToolsDisabled = () => process.env.DISABLE_LOBEHUB_MARKET_TOOLS === '1';
+
 // OIDC procedures are public (used during authentication flow)
 const oidcProcedure = publicProcedure
   .use(serverDatabase)
@@ -40,6 +42,13 @@ export const oidcRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Market OIDC is disabled on this deployment',
+        });
+      }
+
       log('exchangeAuthorizationCode input: %O', { ...input, code: '[REDACTED]' });
 
       try {
@@ -84,6 +93,13 @@ export const oidcRouter = router({
   getUserInfo: oidcProcedure
     .input(z.object({ token: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Market OIDC is disabled on this deployment',
+        });
+      }
+
       log('getUserInfo input: token=%s', input.token ? '[REDACTED]' : 'undefined');
 
       try {
@@ -127,6 +143,13 @@ export const oidcRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Market OIDC is disabled on this deployment',
+        });
+      }
+
       log('refreshToken input: %O', { ...input, refreshToken: '[REDACTED]' });
 
       try {

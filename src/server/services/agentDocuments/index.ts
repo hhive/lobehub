@@ -266,6 +266,11 @@ export class AgentDocumentsService {
     return this.projectDocuments(excludeArchivedToolResults(docs));
   }
 
+  async getAgentDocumentList(agentId: string): Promise<AgentDocumentWithRules[]> {
+    const docs = await this.agentDocumentModel.findByAgentList(agentId);
+    return excludeArchivedToolResults(docs);
+  }
+
   /**
    * Return this agent's skill-bundle documents in a shape ready for the
    * homogeneous skill runtime: identifier is prefixed

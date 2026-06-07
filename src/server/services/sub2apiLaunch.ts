@@ -12,6 +12,7 @@ import { AiModelSourceEnum, loadModels } from 'model-bank';
 import { AiModelModel } from '@/database/models/aiModel';
 import { AiProviderModel } from '@/database/models/aiProvider';
 import { UserModel } from '@/database/models/user';
+import { session as authSessions } from '@/database/schemas/betterAuth';
 import { users } from '@/database/schemas/user';
 import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
 
@@ -83,6 +84,26 @@ function getSub2APIBoundAuthIdentity(payload: Sub2APIExchangePayload) {
 
 export function buildSub2APIPassword({ secret, userId }: PasswordInput): string {
   return crypto.createHash('sha256').update(`${secret}:${userId}`).digest('hex');
+}
+
+function generateAuthId(prefix: string, byteLength = 18): string {
+  return `${prefix}_${crypto.randomBytes(byteLength).toString('base64url')}`;
+}
+
+function signBetterAuthCookieValue(token: string, secret: string): string {
+  const signature = crypto.createHmac('sha256', secret).update(token).digest('base64');
+
+  return `${token}.${encodeURIComponent(signature)}`;
+}
+
+function buildBetterAuthSessionCookie(token: string, secret: string) {
+  const securePrefix = process.env.APP_URL?.startsWith('https://') ? '__Secure-' : '';
+  const name = `${securePrefix}better-auth.session_token`;
+  const value = signBetterAuthCookieValue(token, secret);
+
+  return `${name}=${value}; Max-Age=604800; Path=/; HttpOnly; ${
+    securePrefix ? 'Secure; ' : ''
+  }SameSite=Lax`;
 }
 
 export function normalizeSub2APIAPIBaseURL(rawBaseURL: string): string {
@@ -253,55 +274,59 @@ export async function authenticateSub2APIBoundUser(params: {
   secret: string;
 }): Promise<LobeHubAuthResult> {
   const identity = getSub2APIBoundAuthIdentity(params.payload);
-  const password = buildSub2APIPassword({ secret: params.secret, userId: params.payload.user_id });
-
-  let authResponse = await authenticateWithBetterAuthEmail(params.appOrigin, {
-    email: identity.email,
-    name: identity.name,
-    password,
-  });
-
-  if (!authResponse.ok && identity.email !== identity.legacyEmail) {
-    authResponse = await callBetterAuth(params.appOrigin, '/api/auth/sign-in/email', {
-      email: identity.legacyEmail,
-      password,
-      rememberMe: true,
-    });
-  }
-
-  if (!authResponse.ok) {
-    throw new Error(`LobeHub auth failed with status ${authResponse.status}`);
-  }
-
-  const body = await authResponse.json();
-  const userId = body?.user?.id;
-  if (!userId) {
-    throw new Error('LobeHub auth returned no user id');
-  }
+  const userId = await upsertSub2APITrustedUser(identity.email, identity.name);
+  const sessionToken = await createBetterAuthSession(userId);
 
   await syncSub2APIUserRole(userId, params.payload.role);
 
-  return { setCookies: getSetCookies(authResponse.headers), userId };
+  const authSecret = process.env.AUTH_SECRET?.trim();
+  if (!authSecret) throw new Error('AUTH_SECRET is required to create LobeHub session');
+
+  return { setCookies: [buildBetterAuthSessionCookie(sessionToken, authSecret)], userId };
 }
 
-async function authenticateWithBetterAuthEmail(
-  appOrigin: string,
-  params: { email: string; name: string; password: string },
-) {
-  const signUpResponse = await callBetterAuth(appOrigin, '/api/auth/sign-up/email', {
-    email: params.email,
-    name: params.name,
-    password: params.password,
-    rememberMe: true,
+async function upsertSub2APITrustedUser(email: string, name: string): Promise<string> {
+  const existing = await serverDB.query.users.findFirst({ where: eq(users.email, email) });
+  if (existing) return existing.id;
+
+  const now = new Date();
+  const userId = generateAuthId('user');
+  await serverDB
+    .insert(users)
+    .values({
+      createdAt: now,
+      email,
+      emailVerified: true,
+      emailVerifiedAt: now,
+      fullName: name,
+      id: userId,
+      normalizedEmail: email,
+      role: 'user',
+      updatedAt: now,
+    })
+    .onConflictDoNothing({ target: users.email });
+
+  const created = await serverDB.query.users.findFirst({ where: eq(users.email, email) });
+  if (!created) throw new Error('Failed to create Sub2API trusted LobeHub user');
+
+  return created.id;
+}
+
+async function createBetterAuthSession(userId: string): Promise<string> {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const token = crypto.randomBytes(24).toString('base64url');
+
+  await serverDB.insert(authSessions).values({
+    createdAt: now,
+    expiresAt,
+    id: generateAuthId('session', 9),
+    token,
+    updatedAt: now,
+    userId,
   });
 
-  if (signUpResponse.ok || signUpResponse.status !== 422) return signUpResponse;
-
-  return callBetterAuth(appOrigin, '/api/auth/sign-in/email', {
-    email: params.email,
-    password: params.password,
-    rememberMe: true,
-  });
+  return token;
 }
 
 async function syncSub2APIUserRole(userId: string, role?: string) {
@@ -403,21 +428,4 @@ export function pickDefaultSub2APIChatModel(
   if (!chatModel) return;
 
   return { model: chatModel.id, provider: 'openai' };
-}
-
-async function callBetterAuth(appOrigin: string, path: string, body: Record<string, unknown>) {
-  return fetch(new URL(path, appOrigin), {
-    body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' },
-    method: 'POST',
-  });
-}
-
-function getSetCookies(headers: Headers): string[] {
-  const withGetSetCookie = headers as Headers & { getSetCookie?: () => string[] };
-  const cookies = withGetSetCookie.getSetCookie?.();
-  if (cookies?.length) return cookies;
-
-  const single = headers.get('set-cookie');
-  return single ? [single] : [];
 }

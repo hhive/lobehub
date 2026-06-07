@@ -137,10 +137,26 @@ const linkOptions = {
   url: withElectronProtocolIfElectron('/trpc/lambda'),
 };
 
-// Procedures that should skip batching for faster initial load
+// Procedures that should skip batching for faster initial load and history navigation.
+// History reads should not wait for unrelated procedures in the same tRPC batch.
 const initialLoadProcedures = new Set(['user.getUserState', 'config.getGlobalConfig']);
+const historyProcedures = new Set([
+  'agentDocument.getDocuments',
+  'agentSkills.list',
+  'message.getMessages',
+  'notebook.listDocuments',
+  'plugin.getPlugins',
+  'session.getGroupedSessions',
+  'thread.getThreads',
+  'topic.getTopics',
+  'userMemories.retrieveMemoryForTopic',
+]);
 const slowProcedures = new Set(['market.getAssistantList']);
-const SKIP_BATCH_PROCEDURES = new Set([...initialLoadProcedures, ...slowProcedures]);
+const SKIP_BATCH_PROCEDURES = new Set([
+  ...initialLoadProcedures,
+  ...historyProcedures,
+  ...slowProcedures,
+]);
 
 // 3. splitLink to conditionally disable batching
 const customSplitLink = splitLink({

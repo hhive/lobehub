@@ -154,6 +154,20 @@ type MarketToolContext = {
 const MARKET_AUTH_EXPIRED_MESSAGE =
   'Market authorization expired. An authorization dialog has been shown to the user. Please wait for the user to complete authorization and then retry the current task.';
 
+const MARKET_TOOLS_DISABLED_MESSAGE = 'LobeHub Market tools are disabled on this deployment.';
+
+const isMarketToolsDisabled = () => process.env.DISABLE_LOBEHUB_MARKET_TOOLS === '1';
+
+const disabledToolResult = (): CallToolResult => ({
+  error: {
+    message: MARKET_TOOLS_DISABLED_MESSAGE,
+    name: 'MarketToolsDisabled',
+  },
+  result: null,
+  sessionExpiredAndRecreated: false,
+  success: false,
+});
+
 const throwMarketAuthorizationExpired = (): never => {
   throw new TRPCError({
     code: 'UNAUTHORIZED',
@@ -201,7 +215,7 @@ const runBuildInToolWithMarketRefresh = async ({
     userModel: ctx.userModel,
   });
 
-  if (!refreshed) throwMarketAuthorizationExpired();
+  if (!refreshed) return throwMarketAuthorizationExpired();
 
   try {
     return await runBuildInTool(refreshed.marketService, toolName, params, topicId, userId);
@@ -222,6 +236,8 @@ const execInSandboxHandler = async ({
 }): Promise<CallToolResult> => {
   const { toolName, params, topicId } = input;
   const userId = input?.userId || ctx.userId;
+
+  if (isMarketToolsDisabled()) return disabledToolResult();
 
   log('execInSandbox: tool=%s, topicId=%s', toolName, topicId);
 
@@ -346,6 +362,14 @@ export const marketRouter = router({
   callCloudMcpEndpoint: marketToolProcedure
     .input(callCloudMcpEndpointSchema)
     .mutation(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        return {
+          content: MARKET_TOOLS_DISABLED_MESSAGE,
+          state: { isError: true },
+          success: false,
+        };
+      }
+
       log('callCloudMcpEndpoint input: %O', input);
 
       const startTime = Date.now();
@@ -457,6 +481,13 @@ export const marketRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        return {
+          data: null,
+          success: false,
+        };
+      }
+
       const { provider, toolName, args, topicId } = input;
       log('connectCallTool: provider=%s, tool=%s, topicId=%s', provider, toolName, topicId);
       try {
@@ -502,6 +533,13 @@ export const marketRouter = router({
    * Get all connections health status
    */
   connectGetAllHealth: lobehubSkillAuthProcedure.query(async ({ ctx }) => {
+    if (isMarketToolsDisabled()) {
+      return {
+        connections: [],
+        summary: undefined,
+      };
+    }
+
     log('connectGetAllHealth');
 
     try {
@@ -532,6 +570,14 @@ export const marketRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        return {
+          authorizeUrl: '',
+          code: '',
+          expiresIn: 0,
+        };
+      }
+
       log('connectGetAuthorizeUrl: provider=%s', input.provider);
 
       try {
@@ -560,6 +606,15 @@ export const marketRouter = router({
   connectGetStatus: lobehubSkillAuthProcedure
     .input(z.object({ provider: z.string() }))
     .query(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        return {
+          connected: false,
+          connection: null,
+          icon: undefined,
+          providerName: undefined,
+        };
+      }
+
       log('connectGetStatus: provider=%s', input.provider);
 
       try {
@@ -583,6 +638,12 @@ export const marketRouter = router({
    * List all user connections
    */
   connectListConnections: lobehubSkillBaseProcedure.query(async ({ ctx }) => {
+    if (isMarketToolsDisabled()) {
+      return {
+        connections: [],
+      };
+    }
+
     log('connectListConnections');
 
     try {
@@ -606,6 +667,12 @@ export const marketRouter = router({
    * List available providers (public, no auth required)
    */
   connectListProviders: lobehubSkillBaseProcedure.query(async ({ ctx }) => {
+    if (isMarketToolsDisabled()) {
+      return {
+        providers: [],
+      };
+    }
+
     log('connectListProviders');
 
     try {
@@ -628,6 +695,13 @@ export const marketRouter = router({
   connectListTools: lobehubSkillBaseProcedure
     .input(z.object({ provider: z.string() }))
     .query(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        return {
+          provider: input.provider,
+          tools: [],
+        };
+      }
+
       log('connectListTools: provider=%s', input.provider);
 
       try {
@@ -651,6 +725,13 @@ export const marketRouter = router({
   connectRefresh: lobehubSkillAuthProcedure
     .input(z.object({ provider: z.string() }))
     .mutation(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        return {
+          connection: null,
+          refreshed: false,
+        };
+      }
+
       log('connectRefresh: provider=%s', input.provider);
 
       try {
@@ -674,6 +755,10 @@ export const marketRouter = router({
   connectRevoke: lobehubSkillAuthProcedure
     .input(z.object({ provider: z.string() }))
     .mutation(async ({ input, ctx }) => {
+      if (isMarketToolsDisabled()) {
+        return { success: true };
+      }
+
       log('connectRevoke: provider=%s', input.provider);
 
       try {
@@ -697,6 +782,14 @@ export const marketRouter = router({
     .input(exportAndUploadFileSchema)
     .mutation(async ({ input, ctx }) => {
       const { path, filename, topicId } = input;
+
+      if (isMarketToolsDisabled()) {
+        return {
+          error: { message: MARKET_TOOLS_DISABLED_MESSAGE },
+          filename,
+          success: false,
+        } as ExportAndUploadFileResult;
+      }
 
       log('Exporting and uploading file: %s from path: %s in topic: %s', filename, path, topicId);
 

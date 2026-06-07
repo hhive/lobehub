@@ -10,6 +10,12 @@ import { serverDatabase } from '@/libs/trpc/lambda/middleware';
  * Klavis procedure with API key validation and database access
  */
 const klavisProcedure = authedProcedure.use(serverDatabase).use(async (opts) => {
+  if (process.env.DISABLE_LOBEHUB_MARKET_TOOLS === '1') {
+    return opts.next({
+      ctx: { ...opts.ctx, klavisClient: null, pluginModel: null },
+    });
+  }
+
   const client = getKlavisClient();
   const pluginModel = new PluginModel(opts.ctx.serverDB, opts.ctx.userId);
 
@@ -17,6 +23,20 @@ const klavisProcedure = authedProcedure.use(serverDatabase).use(async (opts) => 
     ctx: { ...opts.ctx, klavisClient: client, pluginModel },
   });
 });
+
+const getEnabledKlavisContext = (ctx: {
+  klavisClient: ReturnType<typeof getKlavisClient> | null;
+  pluginModel: PluginModel | null;
+}) => {
+  if (!ctx.klavisClient || !ctx.pluginModel) {
+    throw new Error('Klavis tools are disabled');
+  }
+
+  return {
+    klavisClient: ctx.klavisClient,
+    pluginModel: ctx.pluginModel,
+  };
+};
 
 export const klavisRouter = router({
   /**
@@ -34,10 +54,11 @@ export const klavisRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const { klavisClient, pluginModel } = getEnabledKlavisContext(ctx);
       const { serverName, userId, identifier } = input;
 
       // Create a single server instance
-      const response = await ctx.klavisClient.mcpServer.createServerInstance({
+      const response = await klavisClient.mcpServer.createServerInstance({
         serverName: serverName as any,
         userId,
       });
@@ -45,7 +66,7 @@ export const klavisRouter = router({
       const { serverUrl, instanceId, oauthUrl } = response;
 
       // Get the tool list for this server
-      const toolsResponse = await ctx.klavisClient.mcpServer.getTools(serverName as any);
+      const toolsResponse = await klavisClient.mcpServer.getTools(serverName as any);
       const tools = toolsResponse.tools || [];
 
       // Save to database using the provided identifier (format: lowercase, spaces replaced with hyphens)
@@ -66,7 +87,7 @@ export const klavisRouter = router({
 
       // Save to database with oauthUrl and isAuthenticated status
       const isAuthenticated = !oauthUrl; // If there's no oauthUrl, authentication is not required or already authenticated
-      await ctx.pluginModel.create({
+      await pluginModel.create({
         customParams: {
           klavis: {
             instanceId,
@@ -104,11 +125,12 @@ export const klavisRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const { klavisClient, pluginModel } = getEnabledKlavisContext(ctx);
       // Call Klavis API to delete server instance
-      await ctx.klavisClient.mcpServer.deleteServerInstance(input.instanceId);
+      await klavisClient.mcpServer.deleteServerInstance(input.instanceId);
 
       // Delete from database (using identifier)
-      await ctx.pluginModel.delete(input.identifier);
+      await pluginModel.delete(input.identifier);
 
       return { success: true };
     }),
@@ -117,9 +139,12 @@ export const klavisRouter = router({
    * Get Klavis plugins from database
    */
   getKlavisPlugins: klavisProcedure.query(async ({ ctx }) => {
-    const allPlugins = await ctx.pluginModel.query();
+    if (process.env.DISABLE_LOBEHUB_MARKET_TOOLS === '1') return [];
+
+    const { pluginModel } = getEnabledKlavisContext(ctx);
+    const allPlugins = await pluginModel.query();
     // Filter plugins that have klavis customParams
-    return allPlugins.filter((plugin) => plugin.customParams?.klavis);
+    return allPlugins.filter((plugin: any) => plugin.customParams?.klavis);
   }),
 
   /**
@@ -133,8 +158,9 @@ export const klavisRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
+      const { klavisClient } = getEnabledKlavisContext(ctx);
       try {
-        const response = await ctx.klavisClient.mcpServer.getServerInstance(input.instanceId);
+        const response = await klavisClient.mcpServer.getServerInstance(input.instanceId);
         return {
           authNeeded: response.authNeeded,
           error: undefined,
@@ -179,7 +205,8 @@ export const klavisRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const response = await ctx.klavisClient.user.getUserIntegrations(input.userId);
+      const { klavisClient } = getEnabledKlavisContext(ctx);
+      const response = await klavisClient.user.getUserIntegrations(input.userId);
 
       return {
         integrations: response.integrations,
@@ -197,7 +224,8 @@ export const klavisRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      await ctx.pluginModel.delete(input.identifier);
+      const { pluginModel } = getEnabledKlavisContext(ctx);
+      await pluginModel.delete(input.identifier);
       return { success: true };
     }),
 
@@ -225,11 +253,12 @@ export const klavisRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const { pluginModel } = getEnabledKlavisContext(ctx);
       const { identifier, serverName, serverUrl, instanceId, tools, isAuthenticated, oauthUrl } =
         input;
 
       // Get existing plugin (using identifier)
-      const existingPlugin = await ctx.pluginModel.findById(identifier);
+      const existingPlugin = await pluginModel.findById(identifier);
 
       // Build manifest containing all tools
       const manifest: ToolManifest = {
@@ -259,9 +288,9 @@ export const klavisRouter = router({
 
       // Update or create plugin
       if (existingPlugin) {
-        await ctx.pluginModel.update(identifier, { customParams, manifest });
+        await pluginModel.update(identifier, { customParams, manifest });
       } else {
-        await ctx.pluginModel.create({
+        await pluginModel.create({
           customParams,
           identifier,
           manifest,

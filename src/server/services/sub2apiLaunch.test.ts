@@ -18,6 +18,10 @@ const mocks = vi.hoisted(() => ({
   toggleProviderEnabled: vi.fn(),
   updateConfig: vi.fn(),
   getUserSettingsDefaultAgentConfig: vi.fn(),
+  insert: vi.fn(),
+  insertOnConflictDoNothing: vi.fn(),
+  insertValues: vi.fn(),
+  userFindFirst: vi.fn(),
   updateSetting: vi.fn(),
   updateSet: vi.fn(),
   updateWhere: vi.fn(),
@@ -46,6 +50,12 @@ vi.mock('@/database/models/user', () => ({
 
 vi.mock('@lobechat/database', () => ({
   serverDB: {
+    insert: mocks.insert,
+    query: {
+      users: {
+        findFirst: mocks.userFindFirst,
+      },
+    },
     update: vi.fn(() => ({
       set: mocks.updateSet.mockReturnValue({
         where: mocks.updateWhere,
@@ -127,6 +137,17 @@ describe('sub2apiLaunch helpers', () => {
     mocks.toggleProviderEnabled.mockReset();
     mocks.getUserSettingsDefaultAgentConfig.mockReset();
     mocks.getUserSettingsDefaultAgentConfig.mockResolvedValue({});
+    mocks.insert.mockReset();
+    mocks.insertOnConflictDoNothing.mockReset();
+    mocks.insertValues.mockReset();
+    mocks.insertValues.mockReturnValue({
+      onConflictDoNothing: mocks.insertOnConflictDoNothing,
+    });
+    mocks.insert.mockReturnValue({
+      values: mocks.insertValues,
+    });
+    mocks.userFindFirst.mockReset();
+    mocks.userFindFirst.mockResolvedValue({ id: 'lobe-user-1' });
     mocks.updateConfig.mockReset();
     mocks.updateSetting.mockReset();
     mocks.updateSet.mockReset();
@@ -136,6 +157,7 @@ describe('sub2apiLaunch helpers', () => {
     } else {
       process.env.SUB2API_INTERNAL_API_BASE_URL = originalInternalBaseURL;
     }
+    process.env.AUTH_SECRET = 'test-auth-secret';
     vi.spyOn(globalThis, 'fetch').mockRestore();
   });
 
@@ -453,14 +475,7 @@ describe('sub2apiLaunch helpers', () => {
     expect(mocks.batchUpdateAiModels).not.toHaveBeenCalled();
   });
 
-  it('syncs the LobeHub user role from the Sub2API exchange payload after authentication', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ user: { id: 'lobe-user-1' } }), {
-        headers: { 'set-cookie': 'session=abc' },
-        status: 200,
-      }),
-    );
-
+  it('syncs the LobeHub user role from the Sub2API exchange payload after trusted email authentication', async () => {
     const result = await authenticateSub2APIBoundUser({
       appOrigin: 'https://chat.example.com',
       payload: {
@@ -475,18 +490,12 @@ describe('sub2apiLaunch helpers', () => {
     });
 
     expect(result.userId).toBe('lobe-user-1');
+    expect(result.setCookies[0]).toContain('better-auth.session_token=');
     expect(mocks.updateSet).toHaveBeenCalledWith({ role: 'admin' });
     expect(mocks.updateWhere).toHaveBeenCalledTimes(1);
   });
 
-  it('uses the normalized Sub2API email for LobeHub authentication when available', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ user: { id: 'lobe-user-1' } }), {
-        headers: { 'set-cookie': 'session=abc' },
-        status: 200,
-      }),
-    );
-
+  it('uses the normalized Sub2API email as the trusted LobeHub identity', async () => {
     await authenticateSub2APIBoundUser({
       appOrigin: 'https://chat.example.com',
       payload: {
@@ -500,16 +509,9 @@ describe('sub2apiLaunch helpers', () => {
       secret: 'exchange-secret',
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      new URL('/api/auth/sign-up/email', 'https://chat.example.com'),
-      expect.objectContaining({
-        body: JSON.stringify({
-          email: 'user@example.com',
-          name: 'Readable User',
-          password: buildSub2APIPassword({ secret: 'exchange-secret', userId: 2 }),
-          rememberMe: true,
-        }),
-      }),
+    expect(mocks.userFindFirst).toHaveBeenCalledTimes(1);
+    expect(mocks.insertValues).not.toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'user@example.com' }),
     );
   });
 
@@ -556,14 +558,8 @@ describe('sub2apiLaunch helpers', () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it('falls back to the service-owned email when the real email login fails for a historical user', async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(new Response('already exists', { status: 422 }))
-      .mockResolvedValueOnce(new Response('wrong password', { status: 401 }))
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ user: { id: 'legacy-lobe-user' } }), { status: 200 }),
-      );
+  it('creates a LobeHub user for a new trusted Sub2API email', async () => {
+    mocks.userFindFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'new-lobe-user' });
 
     const result = await authenticateSub2APIBoundUser({
       appOrigin: 'https://chat.example.com',
@@ -573,15 +569,18 @@ describe('sub2apiLaunch helpers', () => {
         api_key_id: 1,
         email: 'user@example.com',
         user_id: 2,
+        username: 'Readable User',
       },
       secret: 'exchange-secret',
     });
 
-    expect(result.userId).toBe('legacy-lobe-user');
-    expect(fetchMock).toHaveBeenLastCalledWith(
-      new URL('/api/auth/sign-in/email', 'https://chat.example.com'),
+    expect(result.userId).toBe('new-lobe-user');
+    expect(mocks.insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
-        body: expect.stringContaining('"email":"sub2api-2@sub2api.local"'),
+        email: 'user@example.com',
+        emailVerified: true,
+        fullName: 'Readable User',
+        normalizedEmail: 'user@example.com',
       }),
     );
   });

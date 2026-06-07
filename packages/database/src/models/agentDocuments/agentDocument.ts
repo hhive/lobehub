@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 
 import type { DocumentItem, NewAgentDocument, NewDocument } from '../../schemas';
 import { agentDocuments, documents } from '../../schemas';
@@ -67,6 +67,21 @@ interface ConvertAgentDocumentToSkillIndexParams {
   title: string;
 }
 
+type AgentDocumentProjection = Pick<
+  DocumentItem,
+  | 'content'
+  | 'description'
+  | 'editorData'
+  | 'fileType'
+  | 'filename'
+  | 'id'
+  | 'metadata'
+  | 'parentId'
+  | 'source'
+  | 'sourceType'
+  | 'title'
+>;
+
 export class AgentDocumentModel {
   private userId: string;
   private db: LobeChatDatabase;
@@ -102,7 +117,7 @@ export class AgentDocumentModel {
 
   private toAgentDocument(
     settings: typeof agentDocuments.$inferSelect,
-    doc: DocumentItem,
+    doc: AgentDocumentProjection,
   ): AgentDocument {
     const policy = (settings.policy as AgentDocumentPolicy | null) ?? null;
     const policyLoadFormat =
@@ -861,6 +876,45 @@ export class AgentDocumentModel {
   async findByAgent(agentId: string): Promise<AgentDocumentWithRules[]> {
     const results = await this.db
       .select({ doc: documents, settings: agentDocuments })
+      .from(agentDocuments)
+      .innerJoin(documents, eq(agentDocuments.documentId, documents.id))
+      .where(
+        and(
+          eq(agentDocuments.userId, this.userId),
+          eq(agentDocuments.agentId, agentId),
+          isNull(agentDocuments.deletedAt),
+        ),
+      )
+      .orderBy(desc(agentDocuments.updatedAt));
+
+    return results.map(({ settings, doc }) => {
+      const item = this.toAgentDocument(settings, doc);
+      return {
+        ...item,
+        ...deriveAgentDocumentFields(item),
+        loadRules: parseLoadRules(item),
+      };
+    });
+  }
+
+  async findByAgentList(agentId: string): Promise<AgentDocumentWithRules[]> {
+    const results = await this.db
+      .select({
+        doc: {
+          content: sql<string>`''`,
+          description: documents.description,
+          editorData: sql<Record<string, any> | null>`null`,
+          fileType: documents.fileType,
+          filename: documents.filename,
+          id: documents.id,
+          metadata: documents.metadata,
+          parentId: documents.parentId,
+          source: documents.source,
+          sourceType: documents.sourceType,
+          title: documents.title,
+        },
+        settings: agentDocuments,
+      })
       .from(agentDocuments)
       .innerJoin(documents, eq(agentDocuments.documentId, documents.id))
       .where(

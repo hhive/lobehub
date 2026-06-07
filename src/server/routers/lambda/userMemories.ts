@@ -79,6 +79,8 @@ const EMPTY_TAXONOMY_RESULT: QueryTaxonomyOptionsResult = {
   types: [],
 };
 
+const isUserMemorySearchDisabled = () => process.env.DISABLE_USER_MEMORY_SEARCH === '1';
+
 type MemorySearchContext = {
   memoryModel: UserMemoryModel;
   memoryEffort: MemoryEffort;
@@ -119,6 +121,8 @@ const searchUserMemories = async (
   ctx: MemorySearchContext,
   input: z.infer<typeof searchMemorySchema>,
 ): Promise<SearchMemoryResult> => {
+  if (isUserMemorySearchDisabled()) return EMPTY_SEARCH_RESULT;
+
   const normalizedInput = normalizeSearchMemoryParams(input);
   const { provider, model: embeddingModel } =
     getServerDefaultFilesConfig().embeddingModel || DEFAULT_USER_MEMORY_EMBEDDING_MODEL_ITEM;
@@ -923,6 +927,8 @@ export const userMemoriesRouter = router({
   retrieveMemoryForTopic: memoryProcedure
     .input(z.object({ topicId: z.string() }))
     .query(async ({ ctx, input }) => {
+      if (isUserMemorySearchDisabled()) return EMPTY_SEARCH_RESULT;
+
       // Dev-only escape hatch: skip the embedding + memory search triggered by topic
       // load / switch, so chat debugging logs aren't drowned in `text-embedding-3-small`
       // router-runtime output. Only honored in non-production builds.

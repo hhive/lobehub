@@ -64,7 +64,7 @@ const Item = memo<DiscoverMcpItem & { showLobeHubTag?: boolean }>(
   const handleInstall = async () => {
     if (isCloudMcp && !isAuthenticated) {
       try {
-        await signIn();
+        await signIn('mcp');
       } catch {
         return;
       }

@@ -12,8 +12,8 @@ import {
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { openFeedbackModal } from '@/components/FeedbackModal';
 import { getNavigableRoutes, getRouteById } from '@/config/routes';
-import { useFeedbackModal } from '@/hooks/useFeedbackModal';
 
 import { useCommandMenuContext } from './CommandMenuContext';
 import { CommandItem } from './components';
@@ -23,7 +23,6 @@ import { useCommandMenu } from './useCommandMenu';
 const MainMenu = memo(() => {
   const { pathname, menuContext, setPages, pages } = useCommandMenuContext();
   const { t } = useTranslation('common');
-  const { open: openFeedbackModal } = useFeedbackModal();
 
   const {
     handleCreateSession,

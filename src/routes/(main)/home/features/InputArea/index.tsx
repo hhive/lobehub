@@ -159,7 +159,7 @@ const InputArea = () => {
               dropdownPlacement="bottomLeft"
               inputContainerProps={inputContainerProps}
               placeholder={dailyHint}
-              showRuntimeConfig={false}
+              showControlBar={false}
             />
           </ChatInputProvider>
         </DragUploadZone>

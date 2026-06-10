@@ -9,6 +9,8 @@ export * from './core/RouterRuntime';
 export * from './core/usageConverters';
 export {
   CATEGORY_NUMERIC_PREFIX,
+  CLOUD_TIER_DIGIT,
+  type CloudErrorCode,
   ERROR_CODE_SPECS,
   ERROR_PATTERNS,
   type ErrorAttribution,
@@ -25,6 +27,9 @@ export {
   type MatchInput,
   type MatchResult,
   parseErrorRef,
+  refineErrorCode,
+  type RefineErrorInput,
+  type SpecErrorCode,
 } from './errors';
 export * from './helpers';
 export { LobeAkashChatAI } from './providers/akashchat';
@@ -39,7 +44,7 @@ export { LobeCometAPIAI } from './providers/cometapi';
 export { LobeComfyUI } from './providers/comfyui';
 export { LobeDeepSeekAI } from './providers/deepseek';
 export { LobeGLMCodingPlanAI } from './providers/glmCodingPlan';
-export { GOOGLE_IMAGE_TEXT_ONLY_RESPONSE_MESSAGE, LobeGoogleAI } from './providers/google';
+export { LobeGoogleAI } from './providers/google';
 export { LobeGroq } from './providers/groq';
 export { LobeKimiCodingPlanAI } from './providers/kimiCodingPlan';
 export { LobeHubAI } from './providers/lobehub';
@@ -68,6 +73,7 @@ export { LobeZeroOneAI } from './providers/zeroone';
 export { LobeZhipuAI } from './providers/zhipu';
 export * from './types';
 export * from './types/error';
+export * from './utils/claudeModelId';
 export { consumeStreamUntilDone } from './utils/consumeStream';
 export { AgentRuntimeError } from './utils/createError';
 export { getModelPropertyWithFallback } from './utils/getFallbackModelProperty';

@@ -41,8 +41,12 @@ class AgentDocumentService {
     return lambdaClient.agentDocument.getTemplates.query();
   };
 
-  getDocuments = async (params: { agentId: string; includeContent?: boolean }) => {
+  getDocuments = async (params: { agentId: string }) => {
     return lambdaClient.agentDocument.getDocuments.query(params);
+  };
+
+  getContextDocuments = async (params: { agentId: string }) => {
+    return lambdaClient.agentDocument.getContextDocuments.query(params);
   };
 
   initializeFromTemplate = async (params: { agentId: string; templateSet: string }) => {
@@ -282,7 +286,7 @@ export const resolveAgentDocumentsContext = async (params: {
   if (cachedDocuments !== undefined) return cachedDocuments;
   if (!agentId) return undefined;
 
-  const documents = await agentDocumentService.getDocuments({ agentId, includeContent: true });
+  const documents = await agentDocumentService.getContextDocuments({ agentId });
 
   return toAgentContextDocuments(documents);
 };

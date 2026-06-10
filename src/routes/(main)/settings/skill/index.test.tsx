@@ -26,17 +26,12 @@ vi.mock('@/features/SkillStore', () => ({
   createSkillStoreModal: vi.fn(),
 }));
 
-vi.mock('@/routes/(main)/settings/features/SettingHeader', () => ({
-  default: ({ extra, title }: { extra?: React.ReactNode; title: React.ReactNode }) => (
-    <div>
-      <div data-testid="title">{title}</div>
-      <div data-testid="extra">{extra}</div>
-    </div>
-  ),
-}));
-
 vi.mock('./features/SkillList', () => ({
   default: () => <div data-testid="skill-list" />,
+}));
+
+vi.mock('./features/SkillDetail', () => ({
+  default: () => <div data-testid="skill-detail" />,
 }));
 
 describe('SkillsSetting page', () => {
@@ -48,7 +43,7 @@ describe('SkillsSetting page', () => {
     render(<Page />);
 
     expect(screen.getByTestId('skill-list')).toBeInTheDocument();
-    expect(screen.getByTestId('extra')).toBeEmptyDOMElement();
+    expect(screen.queryByLabelText('skillStore.button')).not.toBeInTheDocument();
   });
 
   it('shows the skill store button for admins', () => {
@@ -56,6 +51,6 @@ describe('SkillsSetting page', () => {
 
     render(<Page />);
 
-    expect(screen.getByText('skillStore.button')).toBeInTheDocument();
+    expect(screen.getByLabelText('skillStore.button')).toBeInTheDocument();
   });
 });

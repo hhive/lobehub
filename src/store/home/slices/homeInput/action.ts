@@ -1,4 +1,5 @@
 import { BUILTIN_AGENT_SLUGS } from '@lobechat/builtin-agents';
+import { CUSTOM_DOCUMENT_FILE_TYPE } from '@lobechat/const';
 
 import { chatGroupService } from '@/services/chatGroup';
 import { documentService } from '@/services/document';
@@ -10,6 +11,7 @@ import { useGlobalStore } from '@/store/global';
 import { useGroupProfileStore } from '@/store/groupProfile';
 import { type HomeStore } from '@/store/home/store';
 import { type StoreSetter } from '@/store/types';
+import { markdownToTxt } from '@/utils/markdownToTxt';
 import { getStableNavigate } from '@/utils/stableNavigate';
 import { setNamespace } from '@/utils/storeDebug';
 
@@ -83,7 +85,7 @@ export class HomeInputActionImpl {
           model,
           provider,
           systemRole: message,
-          title: message?.slice(0, 50) || 'New Agent',
+          title: markdownToTxt(message ?? '').slice(0, 50) || 'New Agent',
         },
         groupId,
       });
@@ -153,7 +155,7 @@ export class HomeInputActionImpl {
           systemPrompt: message,
         },
         groupId,
-        title: message?.slice(0, 50) || 'New Group',
+        title: markdownToTxt(message ?? '').slice(0, 50) || 'New Group',
       });
 
       // 3. Load groups and refresh
@@ -224,8 +226,8 @@ export class HomeInputActionImpl {
       // 2. Create new Document
       const newDoc = await documentService.createDocument({
         editorData: '{}',
-        fileType: 'custom/document',
-        title: message?.slice(0, 50) || 'Untitled',
+        fileType: CUSTOM_DOCUMENT_FILE_TYPE,
+        title: markdownToTxt(message ?? '').slice(0, 50) || 'Untitled',
       });
 
       // 3. Navigate to Page
@@ -243,7 +245,11 @@ export class HomeInputActionImpl {
 
         const { sendMessage } = useChatStore.getState();
         await sendMessage({
-          context: { agentId: pageAgentId, scope: 'page' },
+          // Pass the freshly created document id explicitly. The new PageEditor
+          // has not mounted yet, so the page editor runtime singleton may still
+          // be bound to the previously open document — relying on its fallback
+          // here would scope server-side PageAgent tools to the wrong document.
+          context: { agentId: pageAgentId, documentId: newDoc.id, scope: 'page' },
           editorData,
           message,
         });

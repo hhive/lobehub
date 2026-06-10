@@ -31,8 +31,6 @@ import { createGoogleVideo, pollGoogleVideoOperation } from './createVideo';
 import { createGoogleGenerateObject, createGoogleGenerateObjectWithTools } from './generateObject';
 import { resolveGoogleThinkingConfig } from './thinkingResolver';
 
-export { GOOGLE_IMAGE_TEXT_ONLY_RESPONSE_MESSAGE } from './createImage';
-
 const log = debug('model-runtime:google');
 
 const modelsOffSafetySettings = new Set(['gemini-2.0-flash-exp']);
@@ -188,7 +186,7 @@ export class LobeGoogleAI implements LobeRuntimeAI {
         thinkingLevel,
       }) as ThinkingConfig;
 
-      const contents = await buildGoogleMessages(payload.messages);
+      const contents = await buildGoogleMessages(payload.messages, { model });
 
       const controller = new AbortController();
       const originalSignal = options?.signal;
@@ -330,7 +328,7 @@ export class LobeGoogleAI implements LobeRuntimeAI {
    */
   async generateObject(payload: GenerateObjectPayload, options?: GenerateObjectOptions) {
     // Convert OpenAI messages to Google format
-    const contents = await buildGoogleMessages(payload.messages);
+    const contents = await buildGoogleMessages(payload.messages, { model: payload.model });
     const pricing = await getModelPricing(payload.model, this.provider);
 
     // Handle tools-based structured output

@@ -63,7 +63,7 @@ describe('useMenu', () => {
     });
   });
 
-  it('should hide admin-only menu items when regular user is logged in with auth', () => {
+  it('should show memory but hide admin-only menu items when regular user is logged in with auth', () => {
     act(() => {
       useUserStore.setState({ isSignedIn: true, user: { role: 'user' } as any });
     });
@@ -73,7 +73,7 @@ describe('useMenu', () => {
     act(() => {
       const { mainItems, logoutItems } = result.current;
       expect(mainItems?.some((item) => item?.key === 'setting')).toBe(true);
-      expect(mainItems?.some((item) => item?.key === 'memory')).toBe(false);
+      expect(mainItems?.some((item) => item?.key === 'memory')).toBe(true);
       expect(mainItems?.some((item) => item?.key === 'get-desktop-app')).toBe(false);
       expect(logoutItems.some((item) => item?.key === 'logout')).toBe(true);
     });

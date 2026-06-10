@@ -79,7 +79,7 @@ export const useMenu = () => {
         </Link>
       ),
     },
-    ...(isAdmin && userPanel.showMemory
+    ...(userPanel.showMemory
       ? [
           {
             icon: <Icon icon={BrainCircuit} />,

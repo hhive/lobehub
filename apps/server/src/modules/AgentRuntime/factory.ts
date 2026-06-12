@@ -24,8 +24,11 @@ export const isRedisAvailable = (): boolean => {
  * When disabled (default), use InMemory implementations for local/simple deployments
  */
 const isQueueModeEnabled = (): boolean => {
-  return appEnv.enableQueueAgentRuntime === true;
+  return appEnv.enableQueueAgentRuntime === true || appEnv.agentRuntimeQueueMode === 'bullmq';
 };
+
+const redisRequiredMessage = (): string =>
+  `Redis is required when AGENT_RUNTIME_MODE=${appEnv.agentRuntimeQueueMode === 'bullmq' ? 'bullmq' : 'queue'}. Please configure \`REDIS_URL\`.`;
 
 /**
  * Create AgentStateManager based on configuration
@@ -39,9 +42,7 @@ export const createAgentStateManager = (): IAgentStateManager => {
 
   // Queue mode enabled, Redis is required
   if (!isRedisAvailable()) {
-    throw new Error(
-      'Redis is required when AGENT_RUNTIME_MODE=queue. Please configure `REDIS_URL`.',
-    );
+    throw new Error(redisRequiredMessage());
   }
 
   return new AgentStateManager();
@@ -66,9 +67,7 @@ export const createStreamEventManager = (): IStreamEventManager => {
     log('Redis unavailable and queue mode disabled, using InMemoryStreamEventManager');
     manager = inMemoryStreamEventManager;
   } else {
-    throw new Error(
-      'Redis is required when AGENT_RUNTIME_MODE=queue. Please configure `REDIS_URL`.',
-    );
+    throw new Error(redisRequiredMessage());
   }
 
   // Wrap with Gateway notifier when configured

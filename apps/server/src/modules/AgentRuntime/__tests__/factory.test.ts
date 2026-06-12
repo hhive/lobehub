@@ -22,6 +22,7 @@ const {
   mockAppEnv: {
     AGENT_GATEWAY_SERVICE_TOKEN: undefined as string | undefined,
     AGENT_GATEWAY_URL: 'https://agent-gateway.lobehub.com',
+    agentRuntimeQueueMode: 'local',
     enableQueueAgentRuntime: false,
   },
   mockGetAgentRuntimeRedisClient: vi.fn(),
@@ -60,6 +61,7 @@ vi.mock('../GatewayStreamNotifier', () => ({
 describe('AgentRuntime factory', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAppEnv.agentRuntimeQueueMode = 'local';
     mockAppEnv.enableQueueAgentRuntime = false;
     mockGetAgentRuntimeRedisClient.mockReturnValue(null);
   });
@@ -85,6 +87,7 @@ describe('AgentRuntime factory', () => {
     });
 
     it('uses Redis-backed state when queue mode is enabled and Redis is available', () => {
+      mockAppEnv.agentRuntimeQueueMode = 'queue';
       mockAppEnv.enableQueueAgentRuntime = true;
       mockGetAgentRuntimeRedisClient.mockReturnValue({ ping: vi.fn() });
 
@@ -93,10 +96,29 @@ describe('AgentRuntime factory', () => {
     });
 
     it('throws when queue mode is enabled without Redis', () => {
+      mockAppEnv.agentRuntimeQueueMode = 'queue';
       mockAppEnv.enableQueueAgentRuntime = true;
 
       expect(() => createAgentStateManager()).toThrow(
         'Redis is required when AGENT_RUNTIME_MODE=queue. Please configure `REDIS_URL`.',
+      );
+    });
+
+    it('uses Redis-backed state when BullMQ mode is enabled and Redis is available', () => {
+      mockAppEnv.agentRuntimeQueueMode = 'bullmq';
+      mockAppEnv.enableQueueAgentRuntime = false;
+      mockGetAgentRuntimeRedisClient.mockReturnValue({ ping: vi.fn() });
+
+      expect(createAgentStateManager()).toEqual({ kind: 'redis-state-manager' });
+      expect(MockAgentStateManager).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws when BullMQ mode is enabled without Redis', () => {
+      mockAppEnv.agentRuntimeQueueMode = 'bullmq';
+      mockAppEnv.enableQueueAgentRuntime = false;
+
+      expect(() => createAgentStateManager()).toThrow(
+        'Redis is required when AGENT_RUNTIME_MODE=bullmq. Please configure `REDIS_URL`.',
       );
     });
   });
@@ -120,10 +142,20 @@ describe('AgentRuntime factory', () => {
     });
 
     it('throws when queue mode is enabled without Redis', () => {
+      mockAppEnv.agentRuntimeQueueMode = 'queue';
       mockAppEnv.enableQueueAgentRuntime = true;
 
       expect(() => createStreamEventManager()).toThrow(
         'Redis is required when AGENT_RUNTIME_MODE=queue. Please configure `REDIS_URL`.',
+      );
+    });
+
+    it('throws when BullMQ mode is enabled without Redis', () => {
+      mockAppEnv.agentRuntimeQueueMode = 'bullmq';
+      mockAppEnv.enableQueueAgentRuntime = false;
+
+      expect(() => createStreamEventManager()).toThrow(
+        'Redis is required when AGENT_RUNTIME_MODE=bullmq. Please configure `REDIS_URL`.',
       );
     });
 

@@ -1,5 +1,5 @@
 import { type QueueServiceImpl } from './impls';
-import { createQueueServiceModule, LocalQueueServiceImpl } from './impls';
+import { BullMQQueueServiceImpl, createQueueServiceModule, LocalQueueServiceImpl } from './impls';
 import { type HealthCheckResult, type QueueMessage, type QueueStats } from './types';
 
 /**
@@ -9,6 +9,7 @@ import { type HealthCheckResult, type QueueMessage, type QueueStats } from './ty
  * Execution modes:
  * - Local mode (default): LocalQueueServiceImpl with setTimeout for async step execution
  * - Queue mode (AGENT_RUNTIME_MODE=queue): QStashQueueServiceImpl for production
+ * - BullMQ mode (AGENT_RUNTIME_MODE=bullmq): Redis-backed local worker queue
  */
 export class QueueService {
   private impl: QueueServiceImpl;
@@ -19,7 +20,7 @@ export class QueueService {
 
   /**
    * Get the underlying implementation
-   * Used by AgentRuntimeService to set execution callback for LocalQueueServiceImpl
+   * Used by AgentRuntimeService to set execution callback for queue implementations
    */
   getImpl(): QueueServiceImpl {
     return this.impl;
@@ -30,6 +31,10 @@ export class QueueService {
    */
   isLocalExecution(): boolean {
     return this.impl instanceof LocalQueueServiceImpl;
+  }
+
+  isBullMQExecution(): boolean {
+    return this.impl instanceof BullMQQueueServiceImpl;
   }
 
   /**

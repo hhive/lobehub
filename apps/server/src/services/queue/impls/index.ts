@@ -1,5 +1,6 @@
 import { appEnv } from '@/envs/app';
 
+import { BullMQQueueServiceImpl } from './bullmq';
 import { LocalQueueServiceImpl } from './local';
 import { QStashQueueServiceImpl } from './qstash';
 import { type QueueServiceImpl } from './type';
@@ -12,6 +13,9 @@ export const isQueueAgentRuntimeEnabled = (): boolean => {
   return appEnv.enableQueueAgentRuntime === true;
 };
 
+export const isBullMQAgentRuntimeEnabled = (): boolean =>
+  appEnv.agentRuntimeQueueMode === 'bullmq';
+
 /**
  * Create queue service module
  *
@@ -22,6 +26,14 @@ export const isQueueAgentRuntimeEnabled = (): boolean => {
  *   - LocalQueueServiceImpl (local development, uses setTimeout for async execution)
  */
 export const createQueueServiceModule = (): QueueServiceImpl => {
+  if (isBullMQAgentRuntimeEnabled()) {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+      throw new Error('REDIS_URL is required when AGENT_RUNTIME_MODE=bullmq');
+    }
+    return new BullMQQueueServiceImpl({ redisUrl });
+  }
+
   if (isQueueAgentRuntimeEnabled()) {
     const qstashToken = process.env.QSTASH_TOKEN;
 
@@ -35,5 +47,6 @@ export const createQueueServiceModule = (): QueueServiceImpl => {
   return new LocalQueueServiceImpl();
 };
 
+export { BullMQQueueServiceImpl } from './bullmq';
 export { LocalQueueServiceImpl } from './local';
 export type { QueueServiceImpl } from './type';

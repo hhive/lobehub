@@ -17,13 +17,14 @@ const getVercelUrl = () => {
   return `https://${process.env.VERCEL_BRANCH_URL}`;
 };
 
-const APP_URL = process.env.APP_URL
-  ? process.env.APP_URL
-  : isInVercel
+let APP_URL = process.env.APP_URL;
+if (!APP_URL) {
+  APP_URL = isInVercel
     ? getVercelUrl()
     : process.env.NODE_ENV === 'development'
       ? `http://localhost:${process.env.PORT || 3010}`
       : `http://localhost:${process.env.PORT || 3210}`;
+}
 
 // INTERNAL_APP_URL is used for server-to-server calls to bypass CDN/proxy
 // Falls back to APP_URL if not set
@@ -84,6 +85,7 @@ export const getAppConfig = () => {
        * @default false
        */
       enableQueueAgentRuntime: z.boolean().optional(),
+      agentRuntimeQueueMode: z.enum(['local', 'queue', 'bullmq']).optional(),
       TELEMETRY_DISABLED: z.boolean().optional(),
     },
     runtimeEnv: {
@@ -123,6 +125,11 @@ export const getAppConfig = () => {
       AGENT_GATEWAY_SERVICE_TOKEN: process.env.AGENT_GATEWAY_SERVICE_TOKEN,
       AGENT_GATEWAY_URL: process.env.AGENT_GATEWAY_URL,
       enableQueueAgentRuntime: process.env.AGENT_RUNTIME_MODE === 'queue',
+      agentRuntimeQueueMode: process.env.AGENT_RUNTIME_MODE === 'bullmq'
+        ? 'bullmq'
+        : process.env.AGENT_RUNTIME_MODE === 'queue'
+          ? 'queue'
+          : 'local',
       TELEMETRY_DISABLED: process.env.TELEMETRY_DISABLED === '1',
     },
   });

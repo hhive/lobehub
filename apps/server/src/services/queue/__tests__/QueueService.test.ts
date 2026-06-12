@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock appEnv before importing QueueService
 const mockAppEnv = {
+  agentRuntimeQueueMode: 'local',
   enableQueueAgentRuntime: false,
 };
 
@@ -14,6 +15,7 @@ describe('QueueService', () => {
   beforeEach(() => {
     vi.resetModules();
     // Reset to default local mode
+    mockAppEnv.agentRuntimeQueueMode = 'local';
     mockAppEnv.enableQueueAgentRuntime = false;
   });
 
@@ -110,6 +112,7 @@ describe('QueueService', () => {
 
   describe('Queue Mode (AGENT_RUNTIME_MODE=queue)', () => {
     it('should throw error when QSTASH_TOKEN is not set', async () => {
+      mockAppEnv.agentRuntimeQueueMode = 'queue';
       mockAppEnv.enableQueueAgentRuntime = true;
       delete process.env.QSTASH_TOKEN;
 
@@ -121,6 +124,7 @@ describe('QueueService', () => {
     });
 
     it('should create QStashQueueServiceImpl when QSTASH_TOKEN is set', async () => {
+      mockAppEnv.agentRuntimeQueueMode = 'queue';
       mockAppEnv.enableQueueAgentRuntime = true;
       process.env.QSTASH_TOKEN = 'test-qstash-token';
 
@@ -135,6 +139,7 @@ describe('QueueService', () => {
     });
 
     it('should return false for isLocalExecution when in queue mode', async () => {
+      mockAppEnv.agentRuntimeQueueMode = 'queue';
       mockAppEnv.enableQueueAgentRuntime = true;
       process.env.QSTASH_TOKEN = 'test-qstash-token';
 
@@ -148,17 +153,68 @@ describe('QueueService', () => {
     });
   });
 
+  describe('BullMQ Mode (AGENT_RUNTIME_MODE=bullmq)', () => {
+    it('should throw error when REDIS_URL is not set', async () => {
+      mockAppEnv.agentRuntimeQueueMode = 'bullmq';
+      mockAppEnv.enableQueueAgentRuntime = false;
+      delete process.env.REDIS_URL;
+
+      const { createQueueServiceModule } = await import('../impls');
+
+      expect(() => createQueueServiceModule()).toThrow(
+        'REDIS_URL is required when AGENT_RUNTIME_MODE=bullmq',
+      );
+    });
+
+    it('should create BullMQQueueServiceImpl when REDIS_URL is set', async () => {
+      mockAppEnv.agentRuntimeQueueMode = 'bullmq';
+      mockAppEnv.enableQueueAgentRuntime = false;
+      process.env.REDIS_URL = 'redis://127.0.0.1:6379';
+
+      const { createQueueServiceModule } = await import('../impls');
+      const impl = createQueueServiceModule();
+
+      expect(impl).not.toBeNull();
+      expect(impl?.constructor.name).toBe('BullMQQueueServiceImpl');
+
+      delete process.env.REDIS_URL;
+    });
+
+    it('should return true for isBullMQExecution when in bullmq mode', async () => {
+      mockAppEnv.agentRuntimeQueueMode = 'bullmq';
+      mockAppEnv.enableQueueAgentRuntime = false;
+      process.env.REDIS_URL = 'redis://127.0.0.1:6379';
+
+      const { QueueService } = await import('../QueueService');
+      const service = new QueueService();
+
+      expect(service.isLocalExecution()).toBe(false);
+      expect(service.isBullMQExecution()).toBe(true);
+
+      delete process.env.REDIS_URL;
+    });
+  });
+
   describe('isQueueAgentRuntimeEnabled', () => {
     it('should return false when enableQueueAgentRuntime is false', async () => {
+      mockAppEnv.agentRuntimeQueueMode = 'local';
       mockAppEnv.enableQueueAgentRuntime = false;
       const { isQueueAgentRuntimeEnabled } = await import('../impls');
       expect(isQueueAgentRuntimeEnabled()).toBe(false);
     });
 
     it('should return true when enableQueueAgentRuntime is true', async () => {
+      mockAppEnv.agentRuntimeQueueMode = 'queue';
       mockAppEnv.enableQueueAgentRuntime = true;
       const { isQueueAgentRuntimeEnabled } = await import('../impls');
       expect(isQueueAgentRuntimeEnabled()).toBe(true);
+    });
+
+    it('should return true when agentRuntimeQueueMode is bullmq', async () => {
+      mockAppEnv.agentRuntimeQueueMode = 'bullmq';
+      mockAppEnv.enableQueueAgentRuntime = false;
+      const { isBullMQAgentRuntimeEnabled } = await import('../impls');
+      expect(isBullMQAgentRuntimeEnabled()).toBe(true);
     });
   });
 

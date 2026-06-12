@@ -366,17 +366,25 @@ export const MarketAuthProvider = ({ children, isDesktop }: MarketAuthProviderPr
   /**
    * Sign-in method (shows confirmation dialog first)
    */
-  const signIn = useCallback(async (scene: MarketAuthScene = 'default'): Promise<number | null> => {
-    if (!useUserStore.getState().isSignedIn) {
-      throw new Error('LobeChat session required');
-    }
-    setAuthScene(scene);
-    return new Promise<number | null>((resolve, reject) => {
-      setPendingSignInResolve(() => resolve);
-      setPendingSignInReject(() => reject);
-      setShowConfirmModal(true);
-    });
-  }, []);
+  const signIn = useCallback(
+    async (scene: MarketAuthScene = 'default'): Promise<number | null> => {
+      if (!useUserStore.getState().isSignedIn) {
+        throw new Error('LobeChat session required');
+      }
+
+      if (enableMarketTrustedClient && scene === 'default') {
+        return session?.userInfo?.accountId ?? null;
+      }
+
+      setAuthScene(scene);
+      return new Promise<number | null>((resolve, reject) => {
+        setPendingSignInResolve(() => resolve);
+        setPendingSignInReject(() => reject);
+        setShowConfirmModal(true);
+      });
+    },
+    [enableMarketTrustedClient, session?.userInfo?.accountId],
+  );
 
   /**
    * Handle authorization confirmation

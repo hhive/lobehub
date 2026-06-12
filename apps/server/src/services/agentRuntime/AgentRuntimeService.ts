@@ -47,7 +47,7 @@ import { FileService } from '@/server/services/file';
 import { mcpService } from '@/server/services/mcp';
 import { MessageService } from '@/server/services/message';
 import { QueueService } from '@/server/services/queue';
-import { LocalQueueServiceImpl } from '@/server/services/queue/impls';
+import { BullMQQueueServiceImpl, LocalQueueServiceImpl } from '@/server/services/queue/impls';
 import { ToolExecutionService } from '@/server/services/toolExecution';
 import { BuiltinToolsExecutor } from '@/server/services/toolExecution/builtin';
 
@@ -247,19 +247,19 @@ export class AgentRuntimeService {
       mcpService,
     });
 
-    // Setup local execution callback for LocalQueueServiceImpl
+    // Setup execution callback for local/BullMQ queue implementations
     this.setupLocalExecutionCallback();
   }
 
   /**
-   * Setup execution callback for LocalQueueServiceImpl
+   * Setup execution callback for local/BullMQ queue implementations
    * This breaks the circular dependency by using callback injection
    */
   private setupLocalExecutionCallback(): void {
     if (!this.queueService) return;
 
     const impl = this.queueService.getImpl();
-    if (impl instanceof LocalQueueServiceImpl) {
+    if (impl instanceof LocalQueueServiceImpl || impl instanceof BullMQQueueServiceImpl) {
       log('Setting up local execution callback');
       impl.setExecutionCallback(async (operationId, stepIndex, context, payload) => {
         // Mirror the QStash path where payload fields (approvedToolCall,

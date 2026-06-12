@@ -2,14 +2,16 @@
  * @vitest-environment happy-dom
  */
 import { render, screen, waitFor } from '@testing-library/react';
+import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useUserStore } from '@/store/user';
 
 import { marketAuthEvents } from './events';
-import { MarketAuthProvider } from './MarketAuthProvider';
+import { MarketAuthProvider, useMarketAuth } from './MarketAuthProvider';
 
 const refreshTokenMock = vi.hoisted(() => vi.fn());
+const enableMarketTrustedClientMock = vi.hoisted(() => ({ value: false }));
 
 vi.mock('antd', () => ({
   App: {
@@ -77,7 +79,7 @@ vi.mock('@/libs/trpc/client', () => ({
 vi.mock('@/store/serverConfig', () => ({
   useServerConfigStore: (
     selector: (state: { serverConfig: { enableMarketTrustedClient: boolean } }) => unknown,
-  ) => selector({ serverConfig: { enableMarketTrustedClient: false } }),
+  ) => selector({ serverConfig: { enableMarketTrustedClient: enableMarketTrustedClientMock.value } }),
 }));
 
 vi.mock('@/store/serverConfig/selectors', () => ({
@@ -95,6 +97,23 @@ const renderProvider = () =>
     </MarketAuthProvider>,
   );
 
+const DefaultSignInOnMount = () => {
+  const { signIn } = useMarketAuth();
+
+  useEffect(() => {
+    void signIn();
+  }, [signIn]);
+
+  return null;
+};
+
+const renderProviderWithDefaultSignIn = () =>
+  render(
+    <MarketAuthProvider isDesktop={false}>
+      <DefaultSignInOnMount />
+    </MarketAuthProvider>,
+  );
+
 const initialUserStoreState = useUserStore.getState();
 
 describe('MarketAuthProvider', () => {
@@ -103,6 +122,7 @@ describe('MarketAuthProvider', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(console, 'info').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
+    enableMarketTrustedClientMock.value = false;
     useUserStore.setState(initialUserStoreState, true);
     useUserStore.setState({
       isSignedIn: true,
@@ -138,6 +158,18 @@ describe('MarketAuthProvider', () => {
     });
 
     expect(screen.queryByTestId('market-auth-confirm-modal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('profile-setup-modal')).not.toBeInTheDocument();
+  });
+
+  it('does not open profile setup for default signIn calls in trusted client mode', async () => {
+    enableMarketTrustedClientMock.value = true;
+
+    renderProviderWithDefaultSignIn();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('market-auth-confirm-modal')).not.toBeInTheDocument();
+    });
+
     expect(screen.queryByTestId('profile-setup-modal')).not.toBeInTheDocument();
   });
 });

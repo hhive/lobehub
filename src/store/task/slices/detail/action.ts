@@ -9,6 +9,7 @@ import type { StoreSetter } from '@/store/types';
 
 import type { TaskStore } from '../../store';
 import { useTaskStore } from '../../store';
+import { isTaskNotFoundError } from '../../utils/isTaskNotFoundError';
 import type { TaskDetailDispatch } from './reducer';
 import { findSubtaskParentId, taskDetailReducer } from './reducer';
 
@@ -300,7 +301,10 @@ export class TaskDetailSliceActionImpl {
     return useClientDataSWR(
       taskId ? [FETCH_TASK_DETAIL_KEY, taskId] : null,
       async ([, id]: [string, string]) => this.fetchTaskDetail(id),
-      { refreshInterval: shouldPoll ? TASK_DETAIL_POLL_INTERVAL : 0 },
+      {
+        refreshInterval: shouldPoll ? TASK_DETAIL_POLL_INTERVAL : 0,
+        shouldRetryOnError: (error) => !isTaskNotFoundError(error),
+      },
     );
   };
 

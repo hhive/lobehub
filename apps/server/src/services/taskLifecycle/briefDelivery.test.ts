@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   deliverBriefToAgentBotsWithDeps,
+  formatBriefBotDeliveryContent,
   formatBriefNotificationContent,
   resolveMessageTarget,
 } from './briefDelivery';
@@ -22,10 +23,33 @@ describe('briefDelivery', () => {
   it('formats a brief notification with the task name and summary', () => {
     expect(
       formatBriefNotificationContent({
-        brief: { id: 'brief-1', summary: '今天天气晴，明天小雨。', title: '天气早报' },
+        brief: { id: 'brief-1', metadata: null, summary: '今天天气晴，明天小雨。', title: '天气早报' },
         task: { name: '杭州天气早间通知' },
       }),
     ).toBe('杭州天气早间通知\n\n今天天气晴，明天小雨。');
+  });
+
+  it('formats bot delivery with the final assistant content when available', () => {
+    expect(
+      formatBriefBotDeliveryContent({
+        brief: {
+          id: 'brief-1',
+          metadata: { task: { finalAssistantContent: '按指定格式输出的完整结论' } },
+          summary: '二次摘要',
+          title: '尾盘汇报',
+        },
+        task: { name: 'A股模拟交易尾盘汇报' },
+      }),
+    ).toBe('A股模拟交易尾盘汇报\n\n按指定格式输出的完整结论');
+  });
+
+  it('falls back to summary when a brief has no final assistant content', () => {
+    expect(
+      formatBriefBotDeliveryContent({
+        brief: { id: 'brief-1', metadata: null, summary: '二次摘要', title: '尾盘汇报' },
+        task: { name: 'A股模拟交易尾盘汇报' },
+      }),
+    ).toBe('A股模拟交易尾盘汇报\n\n二次摘要');
   });
 
   it('resolves direct user and channel targets from provider settings', () => {
@@ -43,7 +67,12 @@ describe('briefDelivery', () => {
 
     await deliverBriefToAgentBotsWithDeps(
       {
-        brief: { id: 'brief-1', summary: 'summary', title: 'title' },
+        brief: {
+          id: 'brief-1',
+          metadata: { task: { finalAssistantContent: 'final conclusion' } },
+          summary: 'summary',
+          title: 'title',
+        },
         task: { assigneeAgentId: 'agent-1', name: 'task name' },
       },
       {
@@ -62,7 +91,7 @@ describe('briefDelivery', () => {
       type: 'task_brief',
     });
     expect(sendDirectMessage).toHaveBeenCalledWith({
-      content: '【title】\ntask name\n\nsummary',
+      content: '【title】\ntask name\n\nfinal conclusion',
       platform: 'feishu',
       userId: 'ou_user',
     });
@@ -81,7 +110,12 @@ describe('briefDelivery', () => {
 
     await deliverBriefToAgentBotsWithDeps(
       {
-        brief: { id: 'brief-1', summary: 'summary', title: 'title' },
+        brief: {
+          id: 'brief-1',
+          metadata: { task: { finalAssistantContent: 'final conclusion' } },
+          summary: 'summary',
+          title: 'title',
+        },
         task: { assigneeAgentId: 'agent-1', name: 'task name' },
       },
       {
@@ -96,7 +130,7 @@ describe('briefDelivery', () => {
 
     expect(sendMessage).toHaveBeenCalledWith({
       channelId: '123',
-      content: '【title】\ntask name\n\nsummary',
+      content: '【title】\ntask name\n\nfinal conclusion',
       platform: 'telegram',
     });
   });
@@ -106,7 +140,7 @@ describe('briefDelivery', () => {
 
     await deliverBriefToAgentBotsWithDeps(
       {
-        brief: { id: 'brief-1', summary: 'summary', title: 'title' },
+        brief: { id: 'brief-1', metadata: null, summary: 'summary', title: 'title' },
         task: { assigneeAgentId: 'agent-1', name: 'task name' },
       },
       {

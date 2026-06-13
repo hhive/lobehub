@@ -575,6 +575,11 @@ export class TaskLifecycleService {
         actions,
         agentId: currentTask.assigneeAgentId || undefined,
         artifacts,
+        metadata: {
+          task: {
+            finalAssistantContent: lastAssistantContent,
+          },
+        },
         priority,
         summary: generated.summary,
         taskId,

@@ -48,7 +48,7 @@ type BriefDeliveryDeps = {
 };
 
 export type BriefDeliveryInput = {
-  brief: Pick<BriefItem, 'id' | 'summary' | 'title'>;
+  brief: Pick<BriefItem, 'id' | 'metadata' | 'summary' | 'title'>;
   task: {
     assigneeAgentId?: null | string;
     identifier?: null | string;
@@ -62,6 +62,17 @@ const pickString = (value: unknown): string | undefined =>
 export const formatBriefNotificationContent = (input: BriefDeliveryInput): string => {
   const taskName = input.task.name || input.task.identifier || '任务';
   return `${taskName}\n\n${input.brief.summary}`;
+};
+
+const getTaskFinalAssistantContent = (metadata: BriefDeliveryInput['brief']['metadata']) => {
+  const task = metadata && typeof metadata === 'object' ? metadata.task : undefined;
+  if (!task || typeof task !== 'object') return undefined;
+  return pickString((task as Record<string, unknown>).finalAssistantContent);
+};
+
+export const formatBriefBotDeliveryContent = (input: BriefDeliveryInput): string => {
+  const taskName = input.task.name || input.task.identifier || '任务';
+  return `${taskName}\n\n${getTaskFinalAssistantContent(input.brief.metadata) || input.brief.summary}`;
 };
 
 export const resolveMessageTarget = (
@@ -124,7 +135,7 @@ export const deliverBriefToAgentBotsWithDeps = async (
       const result = await sendThroughProvider(
         deps.createService(provider),
         provider,
-        `【${input.brief.title}】\n${formatBriefNotificationContent(input)}`,
+        `【${input.brief.title}】\n${formatBriefBotDeliveryContent(input)}`,
       );
       await deps.createDelivery({
         channel: provider.platform,

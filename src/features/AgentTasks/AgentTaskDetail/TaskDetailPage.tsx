@@ -14,6 +14,7 @@ import { useGlobalStore } from '@/store/global';
 import { systemStatusSelectors } from '@/store/global/selectors';
 import { useTaskStore } from '@/store/task';
 import { taskDetailSelectors } from '@/store/task/selectors';
+import { isTaskNotFoundError } from '@/store/task/utils/isTaskNotFoundError';
 
 import Breadcrumb from '../shared/Breadcrumb';
 import TaskActivities from './TaskActivities';
@@ -50,13 +51,13 @@ const TaskDetailPage = memo<TaskDetailPageProps>(({ taskId, showTaskAgentPanelTo
     return () => setActiveTaskId(undefined);
   }, [taskId, setActiveTaskId]);
 
-  const { isLoading } = useFetchTaskDetail(taskId);
+  const { error, isLoading } = useFetchTaskDetail(taskId);
 
   const isInitialLoading = isLoading && !hasTaskDetail;
   // Only treat as not-found when there is no cached detail and the initial fetch
   // has settled. A transient revalidation error (focus/reconnect/poll/5xx) must not
   // hide an already-loaded task behind the 404 fallback.
-  const isNotFound = !isLoading && !hasTaskDetail;
+  const isNotFound = !hasTaskDetail && (isTaskNotFoundError(error) || !isLoading);
 
   if (isNotFound) {
     return (

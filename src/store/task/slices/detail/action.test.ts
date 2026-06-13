@@ -1,3 +1,4 @@
+import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { taskService } from '@/services/task';
@@ -303,6 +304,24 @@ describe('TaskDetailSliceAction', () => {
 
       expect(taskService.addComment).toHaveBeenCalledWith('T-1', 'Nice work', undefined);
       expect(mutate).toHaveBeenCalledWith(['fetchTaskDetail', 'T-1']);
+    });
+  });
+
+  describe('useFetchTaskDetail', () => {
+    it('does not retry permanent task not-found errors', async () => {
+      const { useClientDataSWR } = await import('@/libs/swr');
+      vi.mocked(useClientDataSWR).mockReturnValue({} as any);
+
+      renderHook(() => useTaskStore.getState().useFetchTaskDetail('T-missing'));
+
+      const swrConfig = vi.mocked(useClientDataSWR).mock.calls[0][2] as {
+        shouldRetryOnError?: (error: unknown) => boolean;
+      };
+
+      expect(swrConfig.shouldRetryOnError?.({ data: { code: 'NOT_FOUND' } })).toBe(false);
+      expect(swrConfig.shouldRetryOnError?.({ data: { code: 'INTERNAL_SERVER_ERROR' } })).toBe(
+        true,
+      );
     });
   });
 

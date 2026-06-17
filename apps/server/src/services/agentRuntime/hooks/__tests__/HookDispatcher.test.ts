@@ -267,6 +267,35 @@ describe('HookDispatcher', () => {
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
+    it('should pass custom headers to fetch webhook delivery', async () => {
+      process.env.INTERNAL_APP_URL = 'http://127.0.0.1:3210';
+
+      dispatcher.register(operationId, [
+        {
+          handler: vi.fn(),
+          id: 'fetch-hook',
+          type: 'onComplete',
+          webhook: {
+            delivery: 'fetch',
+            headers: { authorization: 'Bearer internal-secret' },
+            url: '/api/agent/webhooks/bot-callback',
+          },
+        },
+      ]);
+
+      const serialized = dispatcher.getSerializedHooks(operationId);
+      await dispatcher.dispatch(operationId, 'onComplete', makeEvent(), serialized);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://127.0.0.1:3210/api/agent/webhooks/bot-callback',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            authorization: 'Bearer internal-secret',
+          }),
+        }),
+      );
+    });
+
     it('should deliver qstash webhooks for relative URLs through public APP_URL', async () => {
       process.env.APP_URL = 'https://public.example.com';
       process.env.INTERNAL_APP_URL = 'http://127.0.0.1:3210';

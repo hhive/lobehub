@@ -22,7 +22,7 @@ export async function deliverWebhook(
   webhook: AgentHookWebhook,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const { url, delivery = 'fetch' } = webhook;
+  const { url, delivery = 'fetch', headers = {} } = webhook;
 
   // QStash runs outside this host, so it must receive a public callback URL.
   // Direct fetch delivery stays internal-first to avoid proxy/CDN round trips.
@@ -38,13 +38,14 @@ export async function deliverWebhook(
       const qstashToken = process.env.QSTASH_TOKEN;
       if (!qstashToken) {
         log('QStash token not available, falling back to fetch delivery');
-        await fetchDeliver(resolvedUrl, payload);
+        await fetchDeliver(resolvedUrl, payload, headers);
         return;
       }
       const client = new Client({ token: qstashToken });
       await client.publishJSON({
         body: payload,
         headers: {
+          ...headers,
           ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET && {
             'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
           }),
@@ -54,18 +55,22 @@ export async function deliverWebhook(
       log('Webhook delivered via QStash: %s', url);
     } catch (error) {
       log('QStash delivery failed, falling back to fetch: %O', error);
-      await fetchDeliver(resolvedUrl, payload);
+      await fetchDeliver(resolvedUrl, payload, headers);
     }
   } else {
-    await fetchDeliver(resolvedUrl, payload);
+    await fetchDeliver(resolvedUrl, payload, headers);
   }
 }
 
-async function fetchDeliver(url: string, payload: Record<string, unknown>): Promise<void> {
+async function fetchDeliver(
+  url: string,
+  payload: Record<string, unknown>,
+  headers: Record<string, string> = {},
+): Promise<void> {
   try {
     const res = await fetch(url, {
       body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...headers },
       method: 'POST',
     });
     log('Webhook delivered via fetch: %s (status: %d)', url, res.status);

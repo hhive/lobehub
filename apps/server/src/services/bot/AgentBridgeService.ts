@@ -12,7 +12,10 @@ import { createAbortError, isAbortError } from '@/server/services/agentRuntime/a
 import { AiAgentService } from '@/server/services/aiAgent';
 import { GatewayService } from '@/server/services/gateway';
 import { getMessageGatewayClient } from '@/server/services/gateway/MessageGatewayClient';
-import { isQueueAgentRuntimeEnabled } from '@/server/services/queue/impls';
+import {
+  isBullMQAgentRuntimeEnabled,
+  isQueueAgentRuntimeEnabled,
+} from '@/server/services/queue/impls';
 import { SystemAgentService } from '@/server/services/systemAgent';
 
 import { formatPrompt as formatPromptUtil } from './formatPrompt';
@@ -133,6 +136,22 @@ async function safeSideEffect(fn: () => Promise<unknown>, label: string): Promis
   } catch (error) {
     log('safeSideEffect [%s] failed: %O', label, error);
   }
+}
+
+function getBotWebhookDeliveryConfig(): {
+  delivery: 'fetch' | 'qstash';
+  headers?: Record<string, string>;
+} {
+  if (!isBullMQAgentRuntimeEnabled()) {
+    return { delivery: 'qstash' };
+  }
+
+  return {
+    delivery: 'fetch',
+    headers: process.env.KEY_VAULTS_SECRET
+      ? { authorization: `Bearer ${process.env.KEY_VAULTS_SECRET}` }
+      : undefined,
+  };
 }
 
 interface DiscordChannelContext {
@@ -948,6 +967,7 @@ export class AgentBridgeService {
       trigger,
       webhookBody,
     } = opts;
+    const { delivery: webhookDelivery, headers: webhookHeaders } = getBotWebhookDeliveryConfig();
 
     let result: ExecAgentResult;
     try {
@@ -975,7 +995,8 @@ export class AgentBridgeService {
               type: 'afterStep',
               webhook: {
                 body: { ...webhookBody, type: 'step' },
-                delivery: 'qstash',
+                delivery: webhookDelivery,
+                headers: webhookHeaders,
                 url: callbackUrl,
               },
             },
@@ -987,7 +1008,8 @@ export class AgentBridgeService {
               type: 'onComplete',
               webhook: {
                 body: { ...webhookBody, type: 'completion', userPrompt: prompt },
-                delivery: 'qstash',
+                delivery: webhookDelivery,
+                headers: webhookHeaders,
                 url: callbackUrl,
               },
             },
@@ -1103,6 +1125,7 @@ export class AgentBridgeService {
     } = opts;
 
     let { progressMessage } = opts;
+    const { delivery: webhookDelivery, headers: webhookHeaders } = getBotWebhookDeliveryConfig();
     let operationStartTime = 0;
     // Tracks the last markdown body written to `progressMessage` so we can
     // skip redundant edits. Telegram rejects edits with identical content
@@ -1203,7 +1226,8 @@ export class AgentBridgeService {
               type: 'afterStep' as const,
               webhook: {
                 body: { ...webhookBody, type: 'step' },
-                delivery: 'qstash' as const,
+                delivery: webhookDelivery,
+                headers: webhookHeaders,
                 url: callbackUrl,
               },
             },
@@ -1376,7 +1400,8 @@ export class AgentBridgeService {
               type: 'onComplete' as const,
               webhook: {
                 body: { ...webhookBody, type: 'completion', userPrompt: prompt },
-                delivery: 'qstash' as const,
+                delivery: webhookDelivery,
+                headers: webhookHeaders,
                 url: callbackUrl,
               },
             },

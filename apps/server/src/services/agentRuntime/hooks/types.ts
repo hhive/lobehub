@@ -41,6 +41,9 @@ export interface AgentHookWebhook {
   /** Event fields to include in the webhook payload. Defaults to all serializable event fields. */
   eventFields?: (keyof AgentHookEvent)[];
 
+  /** Optional HTTP headers sent with webhook delivery. */
+  headers?: Record<string, string>;
+
   /** Webhook endpoint URL (relative or absolute) */
   url: string;
 }

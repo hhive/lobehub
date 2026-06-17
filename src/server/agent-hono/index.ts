@@ -15,6 +15,7 @@ import { toolResult } from './handlers/toolResult';
 import { bearerSecretAuth } from './middlewares/bearerSecretAuth';
 import { qstashAuth } from './middlewares/qstashAuth';
 import { qstashOrApiKeyAuth } from './middlewares/qstashOrApiKeyAuth';
+import { qstashOrKeyVaultAuth } from './middlewares/qstashOrKeyVaultAuth';
 import { serviceTokenAuth } from './middlewares/serviceTokenAuth';
 
 /**
@@ -65,8 +66,10 @@ app.post(
 // (auth is inline so the disabled-feature 204 short-circuits before auth)
 app.post('/gateway/callback', gatewayCallback);
 
-// POST /api/agent/webhooks/bot-callback — agent step/completion webhooks (QStash)
-app.post('/webhooks/bot-callback', qstashAuth(), botCallback);
+// POST /api/agent/webhooks/bot-callback — agent step/completion webhooks
+// QStash mode sends signed callbacks; BullMQ mode posts same-host callbacks
+// with KEY_VAULTS_SECRET bearer auth.
+app.post('/webhooks/bot-callback', qstashOrKeyVaultAuth(), botCallback);
 
 // POST /api/agent/webhooks/:platform[/:appId] — Chat SDK bot platform webhooks
 app.post('/webhooks/:platform/:appId?', platformWebhook);

@@ -6,6 +6,8 @@ import type * as ModelBankModule from 'model-bank';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentOperationModel } from '@/database/models/agentOperation';
+import { MessageModel } from '@/database/models/message';
+import { createRuntimeExecutors } from '@/server/modules/AgentRuntime/RuntimeExecutors';
 
 import { AgentRuntimeService } from './AgentRuntimeService';
 import { hookDispatcher } from './hooks';
@@ -94,7 +96,14 @@ vi.mock('@/server/modules/AgentRuntime', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
-    createRuntimeExecutors: vi.fn(),
+  };
+});
+
+vi.mock('@/server/modules/AgentRuntime/RuntimeExecutors', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    createRuntimeExecutors: vi.fn().mockReturnValue({}),
   };
 });
 
@@ -477,6 +486,37 @@ describe('AgentRuntimeService', () => {
             enabled: true,
             maxWindowToken: undefined,
           }),
+        }),
+      );
+    });
+
+    it('should scope executor message model to operation metadata user and workspace', async () => {
+      vi.mocked(getModelPropertyWithFallback).mockResolvedValueOnce(undefined);
+      const runtimeUserId = 'runtime-user-id';
+      const runtimeWorkspaceId = 'runtime-workspace-id';
+
+      const serviceWithFactory = new AgentRuntimeService(mockDb, mockUserId, {
+        agentFactory: () => ({ runner: vi.fn() }) as any,
+        workspaceId: 'service-workspace-id',
+      });
+
+      await (serviceWithFactory as any).createAgentRuntime({
+        metadata: {
+          agentConfig: { chatConfig: { enableContextCompression: true } },
+          modelRuntimeConfig: { model: 'gpt-4o-mini', provider: 'openai' },
+          userId: runtimeUserId,
+          workspaceId: runtimeWorkspaceId,
+        },
+        operationId: 'test-operation-1',
+        stepIndex: 1,
+      });
+
+      expect(MessageModel).toHaveBeenCalledWith(mockDb, runtimeUserId, runtimeWorkspaceId);
+      expect(createRuntimeExecutors).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messageModel: vi.mocked(MessageModel).mock.results.at(-1)?.value,
+          userId: runtimeUserId,
+          workspaceId: runtimeWorkspaceId,
         }),
       );
     });

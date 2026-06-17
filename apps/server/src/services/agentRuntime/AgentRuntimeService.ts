@@ -1676,6 +1676,13 @@ export class AgentRuntimeService {
       ? this.agentFactory(generalConfig)
       : new GeneralChatAgent(generalConfig);
 
+    const scopedUserId = metadata?.userId ?? this.userId;
+    const scopedWorkspaceId = metadata?.workspaceId ?? this.workspaceId;
+    const scopedMessageModel =
+      scopedUserId === this.userId && scopedWorkspaceId === this.workspaceId
+        ? this.messageModel
+        : new MessageModel(this.serverDB, scopedUserId, scopedWorkspaceId);
+
     // Create streaming executor context
     const executorContext: RuntimeExecutorContext = {
       agentConfig: metadata?.agentConfig,
@@ -1687,7 +1694,7 @@ export class AgentRuntimeService {
       execSubAgent: this.delegate.execSubAgent,
       hookDispatcher,
       loadAgentState: this.coordinator.loadAgentState.bind(this.coordinator),
-      messageModel: this.messageModel,
+      messageModel: scopedMessageModel,
       operationId,
       serverDB: this.serverDB,
       stepIndex,
@@ -1696,8 +1703,8 @@ export class AgentRuntimeService {
       toolExecutionService: this.toolExecutionService,
       topicId: metadata?.topicId,
       tracingContextEngine,
-      userId: metadata?.userId,
-      workspaceId: this.workspaceId,
+      userId: scopedUserId,
+      workspaceId: scopedWorkspaceId,
     };
 
     // Create Agent Runtime instance

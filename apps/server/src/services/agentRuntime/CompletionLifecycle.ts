@@ -111,6 +111,8 @@ export class CompletionLifecycle {
         : this.statusForReason(reason);
 
     const metadata = state?.metadata ?? {};
+    const scopedUserId = metadata?.userId || this.userId;
+    const scopedWorkspaceId = metadata?.workspaceId ?? this.workspaceId;
     const agentId = metadata?.agentId;
     const topicId = metadata?.topicId;
     const traceS3Key =
@@ -127,7 +129,12 @@ export class CompletionLifecycle {
     const completedAt = isParkedStatus(status) ? undefined : new Date();
 
     try {
-      await this.agentOperationModel.recordCompletion(operationId, {
+      const operationModel =
+        scopedUserId === this.userId && scopedWorkspaceId === this.workspaceId
+          ? this.agentOperationModel
+          : new AgentOperationModel(this.serverDB, scopedUserId, scopedWorkspaceId);
+
+      await operationModel.recordCompletion(operationId, {
         completedAt,
         completionReason,
         cost: state?.cost ?? null,
@@ -221,7 +228,7 @@ export class CompletionLifecycle {
                 agentId: metadata?.agentId,
                 db: this.serverDB,
                 userId: metadata?.userId || this.userId,
-                workspaceId: this.workspaceId,
+                workspaceId: metadata?.workspaceId ?? this.workspaceId,
               },
               { ignoreError: true },
             )
@@ -246,7 +253,7 @@ export class CompletionLifecycle {
                 agentId: metadata?.agentId,
                 db: this.serverDB,
                 userId: metadata?.userId || this.userId,
-                workspaceId: this.workspaceId,
+                workspaceId: metadata?.workspaceId ?? this.workspaceId,
               },
               { ignoreError: true },
             );
@@ -277,14 +284,14 @@ export class CompletionLifecycle {
     userId: string,
   ): Promise<void> {
     try {
-      const operationModel = new AgentOperationModel(this.serverDB, userId);
+      const operationModel = new AgentOperationModel(this.serverDB, userId, this.workspaceId);
       const state = await operationModel.getVerifyState(operationId);
       if (!state?.verifyPlan?.length) return;
 
       const op = await operationModel.findById(operationId);
       if (!op?.topicId) return;
 
-      const messageModel = new MessageModel(this.serverDB, userId);
+      const messageModel = new MessageModel(this.serverDB, userId, this.workspaceId);
       await messageModel.create({
         agentId: op.agentId ?? undefined,
         content: '',

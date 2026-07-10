@@ -1,21 +1,19 @@
+import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { shouldDeferOnboardingRedirect } from './useUserStateRedirect';
+import { type UserInitializationState } from '@/types/user';
 
-describe('shouldDeferOnboardingRedirect', () => {
-  it('defers on invite routes so invited users can accept before onboarding', () => {
-    expect(shouldDeferOnboardingRedirect('/invite/abc')).toBe(true);
-    expect(shouldDeferOnboardingRedirect('/invite/abc/')).toBe(true);
-  });
+import { useWebUserStateRedirect } from './useUserStateRedirect';
 
-  it('defers on possible workspace slug routes', () => {
-    expect(shouldDeferOnboardingRedirect('/acme')).toBe(true);
-    expect(shouldDeferOnboardingRedirect('/acme/settings/members')).toBe(true);
-  });
+describe('useWebUserStateRedirect', () => {
+  it('keeps the current location when onboarding redirects are disabled', () => {
+    const { result } = renderHook(() => useWebUserStateRedirect());
+    const currentUrl = window.location.href;
 
-  it('does not defer on personal app routes', () => {
-    expect(shouldDeferOnboardingRedirect('/')).toBe(false);
-    expect(shouldDeferOnboardingRedirect('/agent')).toBe(false);
-    expect(shouldDeferOnboardingRedirect('/settings/profile')).toBe(false);
+    act(() => {
+      result.current({} as UserInitializationState);
+    });
+
+    expect(window.location.href).toBe(currentUrl);
   });
 });

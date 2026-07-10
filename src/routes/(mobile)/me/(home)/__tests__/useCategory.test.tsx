@@ -77,8 +77,7 @@ describe('useCategory', () => {
       useUserStore.setState({ isSignedIn: true, user: { id: 'normal-user', role: 'user' } });
     });
 
-    const mockOpenChangelogModal = vi.fn();
-    const { result } = renderHook(() => useCategory(mockOpenChangelogModal), { wrapper });
+    const { result } = renderHook(() => useCategory(), { wrapper });
 
     act(() => {
       const items = result.current;

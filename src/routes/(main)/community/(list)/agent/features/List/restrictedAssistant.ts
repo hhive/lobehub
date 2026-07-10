@@ -20,7 +20,9 @@ const RESTRICTED_ASSISTANT_PATTERNS = [
 ];
 
 const toSearchText = (item: Partial<DiscoverAssistantItem>) =>
-  [item.identifier, item.title, item.description, item.systemRole].filter(Boolean).join('\n');
+  [item.identifier, item.title, item.description, item.config?.systemRole]
+    .filter(Boolean)
+    .join('\n');
 
 export const isAutoRestrictedAssistant = (item: Partial<DiscoverAssistantItem>) => {
   const text = toSearchText(item);
@@ -32,7 +34,10 @@ export const resolveAssistantRestriction = (
   item: Partial<DiscoverAssistantItem>,
   manualRestrictions: Record<string, boolean> = {},
 ) => {
-  if (item.identifier && Object.prototype.hasOwnProperty.call(manualRestrictions, item.identifier)) {
+  if (
+    item.identifier &&
+    Object.prototype.hasOwnProperty.call(manualRestrictions, item.identifier)
+  ) {
     return manualRestrictions[item.identifier];
   }
 

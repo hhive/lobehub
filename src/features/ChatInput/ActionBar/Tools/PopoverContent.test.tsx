@@ -58,17 +58,17 @@ describe('PopoverContent', () => {
   });
 
   it('hides the skill store entry for non-admin users', () => {
-    render(<PopoverContent items={[]} onOpenStore={vi.fn()} />);
+    render(<PopoverContent autoCount={0} items={[]} pinnedCount={0} onOpenStore={vi.fn()} />);
 
-    expect(screen.queryByText('skillStore.title')).toBeNull();
-    expect(screen.getByText('tools.plugins.management')).toBeInTheDocument();
+    expect(screen.queryByText('tools.addSkillOrConnector')).toBeNull();
+    expect(screen.getByLabelText('tools.plugins.management')).toBeInTheDocument();
   });
 
   it('shows the skill store entry for admins', () => {
     isAdmin = true;
 
-    render(<PopoverContent items={[]} onOpenStore={vi.fn()} />);
+    render(<PopoverContent autoCount={0} items={[]} pinnedCount={0} onOpenStore={vi.fn()} />);
 
-    expect(screen.getByText('skillStore.title')).toBeInTheDocument();
+    expect(screen.getByText('tools.addSkillOrConnector')).toBeInTheDocument();
   });
 });

@@ -48,14 +48,14 @@ describe('useSocialConnect', () => {
     const { result } = renderHook(() =>
       useSocialConnect({
         onConnectSuccess,
-        provider: 'github',
+        provider: 'twitter',
       }),
     );
 
     await act(async () => {
       const event = new MessageEvent('message', {
         data: {
-          provider: 'github',
+          provider: 'twitter',
           type: 'SOCIAL_PROFILE_AUTH_CALLBACK',
         },
       });
@@ -78,8 +78,8 @@ describe('useSocialConnect', () => {
     });
 
     expect(onConnectSuccess).toHaveBeenCalledWith({
-      id: 'github',
-      provider: 'github',
+      id: 'twitter',
+      provider: 'twitter',
       username: 'octocat',
     });
     expect(connectGetStatusQueryMock).toHaveBeenCalledTimes(2);
@@ -91,7 +91,7 @@ describe('useSocialConnect', () => {
   it('should stop waiting and expose the callback error without polling', async () => {
     const { result } = renderHook(() =>
       useSocialConnect({
-        provider: 'github',
+        provider: 'twitter',
       }),
     );
 
@@ -99,7 +99,7 @@ describe('useSocialConnect', () => {
       const event = new MessageEvent('message', {
         data: {
           error: 'Access denied',
-          provider: 'github',
+          provider: 'twitter',
           type: 'SOCIAL_PROFILE_AUTH_ERROR',
         },
       });

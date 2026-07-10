@@ -31,7 +31,7 @@ const SkillList = memo<SkillListProps>(({ data = [], rows = 3 }) => {
   return (
     <Grid rows={rows} width={'100%'}>
       {visibleData.map((item, index) => (
-        <Item key={index} showLobeHubTag={isRemoteMarketSkill(item)} {...item} />
+        <Item key={index} showLobeHubTag={isRemoteMarketSkill()} {...item} />
       ))}
     </Grid>
   );

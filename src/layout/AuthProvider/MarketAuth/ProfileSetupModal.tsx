@@ -106,11 +106,6 @@ const ProfileSetupModal = memo<ProfileSetupModalProps>(
       [onShowClaimResources],
     );
 
-    const githubConnect = useSocialConnect({
-      onClaimableResourcesFound: handleClaimableResourcesFound,
-      provider: 'github',
-    });
-
     const twitterConnect = useSocialConnect({
       onClaimableResourcesFound: handleClaimableResourcesFound,
       provider: 'twitter',
@@ -122,14 +117,14 @@ const ProfileSetupModal = memo<ProfileSetupModalProps>(
         const fetchProfiles = async () => {
           setIsLoadingSocialProfiles(true);
           try {
-            await Promise.all([githubConnect.fetchProfile(), twitterConnect.fetchProfile()]);
+            await twitterConnect.fetchProfile();
           } finally {
             setIsLoadingSocialProfiles(false);
           }
         };
         fetchProfiles();
       }
-    }, [open, isFirstTimeSetup, githubConnect, twitterConnect]);
+    }, [open, isFirstTimeSetup, twitterConnect]);
 
     // Reset form when modal opens
     useEffect(() => {
@@ -237,8 +232,7 @@ const ProfileSetupModal = memo<ProfileSetupModalProps>(
         setLoading(true);
 
         // Build socialLinks from OAuth profiles and website input
-        const socialLinks: { github?: string; twitter?: string; website?: string } = {};
-        if (githubConnect.profile?.username) socialLinks.github = githubConnect.profile.username;
+        const socialLinks: { twitter?: string; website?: string } = {};
         if (twitterConnect.profile?.username) socialLinks.twitter = twitterConnect.profile.username;
         if (values.website) socialLinks.website = values.website;
 
@@ -246,7 +240,7 @@ const ProfileSetupModal = memo<ProfileSetupModalProps>(
         const meta: {
           bannerUrl?: string;
           description?: string;
-          socialLinks?: { github?: string; twitter?: string; website?: string };
+          socialLinks?: { twitter?: string; website?: string };
         } = {};
         if (values.description) meta.description = values.description;
         if (bannerUrl) meta.bannerUrl = bannerUrl;
@@ -274,24 +268,6 @@ const ProfileSetupModal = memo<ProfileSetupModalProps>(
           userName: values.userName || null,
         };
 
-        // Check for claimable resources after saving (if GitHub is connected)
-        if (githubConnect.profile) {
-          try {
-            const claimResult =
-              await lambdaClient.market.socialProfile.scanClaimableResources.query();
-            if (claimResult.plugins.length > 0 || claimResult.skills.length > 0) {
-              // Close profile modal first, then show claim modal via parent callback
-              onSuccess?.(userProfile);
-              onClose();
-              // Trigger claim modal in parent (MarketAuthProvider)
-              onShowClaimResources?.(claimResult);
-              return;
-            }
-          } catch (err) {
-            console.error('[ProfileSetupModal] Failed to scan claimable resources:', err);
-          }
-        }
-
         onSuccess?.(userProfile);
         onClose();
       } catch (error) {
@@ -317,11 +293,9 @@ const ProfileSetupModal = memo<ProfileSetupModalProps>(
       bannerUrl,
       enableMarketTrustedClient,
       form,
-      githubConnect.profile,
       twitterConnect.profile,
       message,
       onClose,
-      onShowClaimResources,
       onSuccess,
       t,
     ]);
@@ -573,19 +547,7 @@ const ProfileSetupModal = memo<ProfileSetupModalProps>(
                 {t('profileSetup.socialLinks.title')}
               </Text>
 
-              {/* GitHub OAuth Connect Button */}
               <Flexbox gap={12} style={{ marginBottom: 16 }}>
-                <SocialConnectButton
-                  disabled={isLoadingSocialProfiles}
-                  isConnecting={githubConnect.isConnecting}
-                  isDisconnecting={githubConnect.isDisconnecting}
-                  profile={githubConnect.profile}
-                  provider="github"
-                  onConnect={githubConnect.connect}
-                  onDisconnect={githubConnect.disconnect}
-                />
-
-                {/* Twitter OAuth Connect Button */}
                 <SocialConnectButton
                   disabled={isLoadingSocialProfiles}
                   isConnecting={twitterConnect.isConnecting}

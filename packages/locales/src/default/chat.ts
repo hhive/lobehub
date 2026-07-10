@@ -824,7 +824,7 @@ export default {
   'sharePage.error.unauthorized.subtitle': 'Please sign in to view this shared topic.',
   'sharePage.error.unauthorized.title': 'Sign In Required',
   'sharePage.menu.copyLink': 'Copy Link',
-  'sharePage.menu.goTo小逆chat': 'Go to 小逆chat',
+  'sharePage.menu.goToLobeHub': 'Go to 小逆chat',
   'sharePage.menu.more': 'More',
   'sharePage.menu.report': 'Report',
   'sharePageDisclaimer':

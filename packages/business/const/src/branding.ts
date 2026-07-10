@@ -5,7 +5,7 @@
 export const LOBE_CHAT_CLOUD = '小逆chat Cloud';
 
 export const BRANDING_NAME = '小逆chat';
-export const BRANDING_LOGO_URL = '';
+export const BRANDING_LOGO_URL = '/icons/xiaoni-chat.png';
 
 export const ORG_NAME = '小逆chat';
 

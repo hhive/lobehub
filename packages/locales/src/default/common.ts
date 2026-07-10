@@ -536,7 +536,7 @@ export default {
   'taskTemplate.action.connect.short': 'Connect',
   'taskTemplate.action.connecting': 'Waiting for authorization…',
   'taskTemplate.action.create.error': 'Failed to create task. Please try again.',
-  'taskTemplate.action.create.success': 'Scheduled task added. Find it in Lobe AI.',
+  'taskTemplate.action.create.success': 'Scheduled task added. Find it in 小逆chat.',
   'taskTemplate.action.createButton': 'Add task',
   'taskTemplate.action.creating': 'Creating...',
   'taskTemplate.action.dismiss.error': 'Failed to dismiss. Please try again.',

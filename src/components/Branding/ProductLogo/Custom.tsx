@@ -37,12 +37,13 @@ const CustomTextLogo = memo<FlexboxProps & { size: number }>(({ size, style, ...
 });
 
 const CustomImageLogo = memo<Omit<ImageProps, 'alt' | 'src'> & { size: number }>(
-  ({ size, ...rest }) => {
+  ({ size, style, ...rest }) => {
     return (
       <Image
         alt={BRANDING_NAME}
         height={size}
         src={BRANDING_LOGO_URL}
+        style={{ objectFit: 'contain', ...style }}
         unoptimized={true}
         width={size}
         {...rest}
@@ -98,7 +99,7 @@ const CustomLogo = memo<LobeChatProps>(({ extra, size = 32, className, style, ty
     case 'combine': {
       logoComponent = hasCustomLogo ? (
         <>
-          <CustomImageLogo size={size} />
+          <CustomImageLogo size={size} style={style} />
           <CustomTextLogo size={size} style={{ marginLeft: Math.round(size / 4) }} />
         </>
       ) : (

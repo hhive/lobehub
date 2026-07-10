@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { UAParser } from 'ua-parser-js';
 
 import {
   authenticateSub2APIBoundUser,
@@ -6,7 +7,13 @@ import {
   upsertSub2APIOpenAIProvider,
 } from '@/server/services/sub2apiLaunch';
 
-const defaultChatPath = '/chat';
+const desktopChatPath = '/chat';
+const mobileChatPath = '/agent/inbox';
+
+function getChatPath(request: NextRequest): string {
+  const userAgent = request.headers.get('user-agent') || '';
+  return new UAParser(userAgent).getDevice().type === 'mobile' ? mobileChatPath : desktopChatPath;
+}
 
 function buildLaunchURL(path: string, request: NextRequest): URL {
   const appURL = process.env.APP_URL?.trim();
@@ -43,7 +50,7 @@ export const GET = async (request: NextRequest) => {
 
     await upsertSub2APIOpenAIProvider(authResult.userId, payload);
 
-    const response = NextResponse.redirect(buildLaunchURL(defaultChatPath, request));
+    const response = NextResponse.redirect(buildLaunchURL(getChatPath(request), request));
     for (const cookie of authResult.setCookies) {
       response.headers.append('set-cookie', cookie);
     }

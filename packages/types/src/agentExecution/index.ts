@@ -1,12 +1,9 @@
+import type { WorkingDirConfig } from '../device';
 import type { TaskDetail, UIChatMessage } from '../message';
 import type { ChatTopic } from '../topic';
 
 export type AgentSignalOperationKind =
-  | 'memory'
-  | 'nightly-review'
-  | 'self-feedback-intent'
-  | 'self-reflection'
-  | 'skill';
+  'memory' | 'nightly-review' | 'self-feedback-intent' | 'self-reflection' | 'skill';
 
 /**
  * Run-scoped Agent Signal marker stamped onto a background agent operation at
@@ -24,7 +21,14 @@ export interface AgentSignalOperationMarker {
    * completion projector prefers this over the run's agentId.
    */
   agentId?: string;
-  /** Assistant message a resulting receipt should anchor to. */
+  /**
+   * Explicit display anchor for receipts. Write this only when the producer
+   * already knows the exact assistant message that should own the receipt.
+   *
+   * Do not fall back to the triggering user message here. If the backend only
+   * knows the causal source, write `triggerMessageId` and let the conversation
+   * UI resolve the best display anchor from the current message graph.
+   */
   anchorMessageId?: string;
   /** Discriminator the completion handler dispatches on. */
   kind: AgentSignalOperationKind;
@@ -38,7 +42,11 @@ export interface AgentSignalOperationMarker {
   sourceId?: string;
   /** Topic the run is scoped to. */
   topicId?: string;
-  /** User message that initiated the originating feedback. */
+  /**
+   * Causal message source for the signal. For user-feedback flows this is the
+   * user message that triggered the receipt; it is not necessarily the message
+   * where the receipt should render.
+   */
   triggerMessageId?: string;
 }
 
@@ -63,6 +71,14 @@ export interface ExecAgentAppContext {
   defaultTaskAssigneeAgentId?: string;
   /** Current document ID for page-scoped conversations */
   documentId?: string | null;
+  /**
+   * When scope is 'agent_builder', the ID of the agent being edited (i.e. the
+   * left-sidebar agent the user opened AgentBuilder for). The AgentBuilder
+   * builtin runs under its own `agentId`; this field carries the *target* so
+   * server-side tool executors update the correct agent rather than the builder
+   * itself.
+   */
+  editingAgentId?: string;
   /** Group ID for group chat */
   groupId?: string | null;
   /**
@@ -72,12 +88,20 @@ export interface ExecAgentAppContext {
   initialTopicMetadata?: {
     repos?: string[];
     workingDirectory?: string;
+    workingDirectoryConfig?: WorkingDirConfig;
   };
   /**
    * Whether this operation is an isolated sub-agent execution. Used to disable
    * recursive sub-agent dispatch.
    */
   isSubAgent?: boolean;
+  /**
+   * Orchestration role of the agent for this group run. `'supervisor'` for the
+   * group's coordinating agent (execGroupAgent), `'member'` for delegated members
+   * (execAgentMember). Stamped onto the assistant message's
+   * `metadata.orchestrationRole` so the role snapshot persists for rendering.
+   */
+  orchestrationRole?: 'supervisor' | 'member';
   /** Scope identifier */
   scope?: string | null;
   /** Session ID */
@@ -250,37 +274,57 @@ export interface ExecGroupAgentResponse {
   userMessageId: string;
 }
 
-// ============ SubAgent Task Execution Types ============
+// ============ SubAgent Execution Types ============
 
 /**
- * Parameters for execSubAgent - execute SubAgent task
+ * Parameters for execSubAgent - execute an agent in an isolated thread
  * Supports both Group mode and Single Agent mode
  *
  * - Group mode: pass groupId, Thread will be associated with the Group
  * - Single Agent mode: omit groupId, Thread will only be associated with the Agent
  */
 export interface ExecSubAgentParams {
-  /** The SubAgent ID to execute the task */
+  /** The agent ID to execute */
   agentId: string;
   /** The Group ID (optional, only for Group mode) */
   groupId?: string;
-  /** Task instruction/prompt for the SubAgent */
+  /** Instruction/prompt for the agent */
   instruction: string;
-  /** The parent message ID (Supervisor's tool call message or task message) */
+  /** The parent message ID that anchors the isolated thread */
   parentMessageId: string;
   /** Parent operation ID for dispatching callAgent hooks */
   parentOperationId?: string;
-  /**
-   * When true, register the completion bridge that backfills the parent's
-   * placeholder tool message with this sub-agent's result and resumes the
-   * parked parent op (`waiting_for_async_tool` → running). Used by the server
-   * `callSubAgent` deferred-tool path; left false for the legacy fire-and-forget
-   * task dispatch.
-   */
-  resumeParentOnComplete?: boolean;
   /** Timeout in milliseconds (optional) */
   timeout?: number;
-  /** Task title (shown in UI, used as thread title) */
+  /** Thread title shown in UI */
+  title?: string;
+  /** The Topic ID */
+  topicId: string;
+}
+
+/**
+ * Parameters for execVirtualSubAgent - execute a `lobe-agent.callSubAgent`
+ * child run.
+ *
+ * Virtual sub-agents are tool-created isolated runs. They are marked with
+ * `appContext.isSubAgent` so the child cannot recursively spawn more
+ * sub-agents, and they install the completion bridge that backfills the
+ * parent's placeholder tool message before resuming the parent operation.
+ */
+export interface ExecVirtualSubAgentParams {
+  /** The agent ID to execute */
+  agentId: string;
+  /** The Group ID inherited from the parent operation, when present */
+  groupId?: string;
+  /** Instruction/prompt for the virtual sub-agent */
+  instruction: string;
+  /** The parent placeholder tool message ID */
+  parentMessageId: string;
+  /** Parent operation ID to bridge and resume on completion */
+  parentOperationId: string;
+  /** Timeout in milliseconds (optional) */
+  timeout?: number;
+  /** Thread title shown in UI */
   title?: string;
   /** The Topic ID */
   topicId: string;
@@ -290,15 +334,15 @@ export interface ExecSubAgentParams {
  * Result from execSubAgent
  */
 export interface ExecSubAgentResult {
-  /** The assistant message ID created for this task */
+  /** The assistant message ID created for this run */
   assistantMessageId: string;
-  /** Error message if task failed to start */
+  /** Error message if execution failed to start */
   error?: string;
   /** Operation ID for tracking execution status */
   operationId: string;
-  /** Whether the task was created successfully */
+  /** Whether the execution was created successfully */
   success: boolean;
-  /** The Thread ID where the task is executed */
+  /** The Thread ID where the execution is isolated */
   threadId: string;
 }
 

@@ -16,7 +16,7 @@ vi.mock('@/store/user', () => ({
     selector({ user: { role: isAdmin ? 'admin' : 'user' } }),
 }));
 
-vi.mock('@/store/user/slices/auth/selectors', () => ({
+vi.mock('@/store/user/selectors', () => ({
   userProfileSelectors: {
     isAdmin: (state: { user?: { role?: string } }) => state.user?.role === 'admin',
   },
@@ -28,10 +28,6 @@ vi.mock('./Search', () => ({
 
 vi.mock('./SkillList/AddSkillButton', () => ({
   default: () => <div data-testid="add-skill-button" />,
-}));
-
-vi.mock('./SkillList/Custom', () => ({
-  default: () => <div data-testid="custom-list" />,
 }));
 
 vi.mock('./SkillList/LobeHub', () => ({
@@ -57,9 +53,8 @@ describe('SkillStoreContent', () => {
     expect(screen.getByTestId('skill-search')).toBeInTheDocument();
     expect(screen.queryByTestId('add-skill-button')).toBeNull();
     expect(screen.getByTestId('lobehub-list')).toBeInTheDocument();
-    expect(screen.queryByTestId('market-skill-list')).toBeNull();
-    expect(screen.queryByTestId('mcp-list')).toBeNull();
-    expect(screen.queryByTestId('custom-list')).toBeNull();
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    expect(screen.getByRole('tab')).toHaveTextContent('skillStore.tabs.lobehub');
   });
 
   it('renders the skill store for admins', () => {
@@ -71,6 +66,7 @@ describe('SkillStoreContent', () => {
     expect(screen.getByTestId('add-skill-button')).toBeInTheDocument();
     expect(screen.getByTestId('lobehub-list')).toBeInTheDocument();
     expect(screen.getByTestId('market-skill-list')).toBeInTheDocument();
-    expect(screen.getByTestId('custom-list')).toBeInTheDocument();
+    expect(screen.getByTestId('mcp-list')).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
 });

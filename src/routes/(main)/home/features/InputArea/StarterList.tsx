@@ -1,5 +1,5 @@
 import { ModelIcon } from '@lobehub/icons';
-import { Button, Center, Skeleton, Tag } from '@lobehub/ui';
+import { Button, Center, Skeleton, Tag, Tooltip } from '@lobehub/ui';
 import { App } from 'antd';
 import { createStaticStyles, cx } from 'antd-style';
 import { memo, useCallback, useState } from 'react';
@@ -11,13 +11,14 @@ import {
 } from '@/business/client/hooks/useBusinessAgentMode';
 import type { HomeNewModelItem } from '@/business/client/hooks/useHomeNewModels';
 import { useHomeNewModels } from '@/business/client/hooks/useHomeNewModels';
+import { usePermission } from '@/hooks/usePermission';
 import { useStableNavigate } from '@/hooks/useStableNavigate';
 import { agentService } from '@/services/agent';
 import { useAgentStore } from '@/store/agent';
 import { agentByIdSelectors } from '@/store/agent/selectors';
 
 import { useResolvedHomeAgentId } from '../AgentSelect/useResolvedHomeAgentId';
-import { DEFAULT_HOME_NEW_MODELS, NEW_CHAT_PROVIDER } from './starterModels';
+import { useStarterModelDefaults } from './useStarterModelDefaults';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   button: css`
@@ -41,7 +42,8 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
 }));
 
 const getStarterItemKey = (item: HomeNewModelItem) => `${item.type}:${item.model}`;
-const getStarterItemProvider = (item: HomeNewModelItem) => item.provider ?? NEW_CHAT_PROVIDER;
+const getStarterItemProvider = (item: HomeNewModelItem, fallbackProvider: string) =>
+  item.provider ?? fallbackProvider;
 const skeletonWidths = [112, 150, 126, 138];
 
 const StarterList = memo(() => {
@@ -49,13 +51,17 @@ const StarterList = memo(() => {
   const navigate = useStableNavigate();
   const { message } = App.useApp();
   const { agentId: activeAgentId } = useResolvedHomeAgentId();
+  const { allowed: canCreateContent, reason } = usePermission('create_content');
   const updateAgentConfigById = useAgentStore((s) => s.updateAgentConfigById);
   const [switchingKey, setSwitchingKey] = useState<string | null>(null);
-  const { isLoading, items } = useHomeNewModels(DEFAULT_HOME_NEW_MODELS);
+  const { defaultHomeNewModels, fallbackChatProvider } = useStarterModelDefaults();
+  const { isLoading, items } = useHomeNewModels(defaultHomeNewModels);
   const applyBusinessModelModeConfig = useBusinessModelModeConfig();
 
   const handleClick = useCallback(
     async (item: HomeNewModelItem) => {
+      if (!canCreateContent) return;
+
       const key = getStarterItemKey(item);
 
       if (item.type === 'video') {
@@ -71,7 +77,7 @@ const StarterList = memo(() => {
       if (item.type === 'chat') {
         if (!activeAgentId || switchingKey) return;
         setSwitchingKey(key);
-        const provider = getStarterItemProvider(item);
+        const provider = getStarterItemProvider(item, fallbackChatProvider);
         try {
           // Hydrate the agent's config before mutating so the optimistic update
           // doesn't drop pre-existing fields the home input never loaded.
@@ -111,11 +117,13 @@ const StarterList = memo(() => {
       }
     },
     [
+      canCreateContent,
       navigate,
       activeAgentId,
       applyBusinessModelModeConfig,
       updateAgentConfigById,
       switchingKey,
+      fallbackChatProvider,
       message,
       t,
     ],
@@ -127,7 +135,7 @@ const StarterList = memo(() => {
         {t('starter.newLabel')}
       </Tag>
       {isLoading
-        ? DEFAULT_HOME_NEW_MODELS.map((item, index) => (
+        ? defaultHomeNewModels.map((item, index) => (
             <Skeleton.Button
               active
               key={getStarterItemKey(item)}
@@ -141,11 +149,10 @@ const StarterList = memo(() => {
         : items.map((item) => {
             const key = getStarterItemKey(item);
             const isSwitching = switchingKey === key;
-
-            return (
+            const button = (
               <Button
                 className={cx(styles.button)}
-                disabled={!!switchingKey && !isSwitching}
+                disabled={!canCreateContent || (!!switchingKey && !isSwitching)}
                 icon={<ModelIcon model={item.iconModel ?? item.model} size={18} />}
                 key={key}
                 loading={isSwitching}
@@ -156,6 +163,16 @@ const StarterList = memo(() => {
                 {item.title}
               </Button>
             );
+
+            if (!canCreateContent) {
+              return (
+                <Tooltip key={key} title={reason}>
+                  <div>{button}</div>
+                </Tooltip>
+              );
+            }
+
+            return button;
           })}
     </Center>
   );

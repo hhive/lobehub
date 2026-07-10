@@ -1,14 +1,17 @@
-import { Avatar, Block, Button, Flexbox, Icon, Tag, Text } from '@lobehub/ui';
+import { Avatar, Block, Flexbox, Icon, Tag, Text } from '@lobehub/ui';
+import { Button } from '@lobehub/ui/base-ui';
 import { createStaticStyles } from 'antd-style';
 import { ClockIcon, ShieldAlert } from 'lucide-react';
 import qs from 'query-string';
 import React, { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
 import urlJoin from 'url-join';
 
 import PublishedTime from '@/components/PublishedTime';
+import { useWorkspaceAwareNavigate } from '@/features/Workspace/useWorkspaceAwareNavigate';
+import WorkspaceLink from '@/features/Workspace/WorkspaceLink';
 import { useQuery } from '@/hooks/useQuery';
+import { resolveCommunityProfileLink } from '@/routes/(main)/community/(detail)/utils/profileLink';
 import { discoverService } from '@/services/discover';
 import { type AssistantMarketSource, type DiscoverAssistantItem } from '@/types/discover';
 
@@ -76,12 +79,13 @@ const AssistantItem = memo<AssistantItemProps>(
     forkCount,
     backgroundColor,
     userName,
+    ownerType,
     type,
     onRestrictedChange,
     restricted = false,
     showRestrictedTag,
   }) => {
-    const navigate = useNavigate();
+    const navigate = useWorkspaceAwareNavigate();
     const { source } = useQuery() as { source?: AssistantMarketSource };
     const isGroupAgent = type === 'agent-group';
     const basePath = isGroupAgent ? '/community/group_agent' : '/community/agent';
@@ -98,12 +102,16 @@ const AssistantItem = memo<AssistantItemProps>(
     const handleAuthorClick = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
-        // Use userName for navigation if available, otherwise don't navigate
+        // Open the public author profile outside the current workspace scope.
         if (userName) {
-          navigate(`/community/user/${userName}`);
+          window.open(
+            resolveCommunityProfileLink(userName, ownerType),
+            '_blank',
+            'noopener,noreferrer',
+          );
         }
       },
-      [userName, navigate],
+      [ownerType, userName],
     );
 
     const handleClick = useCallback(() => {
@@ -194,11 +202,11 @@ const AssistantItem = memo<AssistantItemProps>(
                   overflow: 'hidden',
                 }}
               >
-                <Link style={{ color: 'inherit', overflow: 'hidden' }} to={link}>
+                <WorkspaceLink style={{ color: 'inherit', overflow: 'hidden' }} to={link}>
                   <Text ellipsis as={'h2'} className={styles.title}>
                     {title}
                   </Text>
-                </Link>
+                </WorkspaceLink>
                 {showRestrictedTag && <Tag color="error">{RESTRICTED_ASSISTANT_TAG}</Tag>}
                 {onRestrictedChange && (
                   <Button

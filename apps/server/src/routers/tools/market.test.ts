@@ -3,183 +3,141 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { marketRouter } from './market';
 
-const runBuildInTool = vi.fn();
-const refreshToken = vi.fn();
-const getUserSettings = vi.fn();
-const updateSetting = vi.fn();
-const createPreSignedUrl = vi.fn();
-const getFileMetadata = vi.fn();
-const createFileRecord = vi.fn();
-
-vi.mock('@/database/core/db-adaptor', () => ({
-  getServerDB: vi.fn().mockResolvedValue({}),
+const mockPreprocessLhCommand = vi.hoisted(() => vi.fn());
+const mockSandboxCallTool = vi.hoisted(() => vi.fn());
+const mockCreateSandboxService = vi.hoisted(() =>
+  vi.fn(() => ({
+    callTool: mockSandboxCallTool,
+  })),
+);
+const mockMarketSDK = vi.hoisted(() => ({
+  skills: {
+    callTool: vi.fn(),
+    listLiveTools: vi.fn(),
+    listTools: vi.fn(),
+  },
 }));
 
-vi.mock('@/database/models/user', () => ({
-  UserModel: Object.assign(
-    vi.fn().mockImplementation(() => ({
-      getUserPreference: vi.fn().mockResolvedValue({ telemetry: false }),
-      getUserSettings,
-      getUserState: vi.fn().mockResolvedValue({ settings: { market: { accessToken: 'expired' } } }),
-      updateSetting,
-    })),
-    {
-      findById: vi.fn().mockResolvedValue({
-        email: 'user@example.com',
-        fullName: 'Test User',
-        username: 'test-user',
-      }),
-    },
-  ),
+vi.mock('@/libs/trpc/lambda/middleware', () => ({
+  marketUserInfo: vi.fn((opts: any) => opts.next({ ctx: opts.ctx })),
+  serverDatabase: vi.fn((opts: any) => opts.next({ ctx: opts.ctx })),
+  telemetry: vi.fn((opts: any) => opts.next({ ctx: opts.ctx })),
 }));
 
-vi.mock('@/server/services/market', () => ({
-  MarketService: vi.fn().mockImplementation((options) => ({
-    market: {
-      plugins: {
-        runBuildInTool,
+vi.mock('@/libs/trpc/lambda/middleware/marketSDK', () => ({
+  marketSDK: vi.fn((opts: any) =>
+    opts.next({
+      ctx: {
+        ...opts.ctx,
+        marketSDK: mockMarketSDK,
       },
-    },
-    options,
-    refreshToken,
-  })),
-}));
-
-vi.mock('@/server/modules/S3', () => ({
-  FileS3: vi.fn().mockImplementation(() => ({
-    createPreSignedUrl,
-    getFileMetadata,
-  })),
+    }),
+  ),
+  requireMarketAuth: vi.fn((opts: any) => opts.next({ ctx: opts.ctx })),
 }));
 
 vi.mock('@/server/services/file', () => ({
-  FileService: vi.fn().mockImplementation(() => ({
-    createFileRecord,
-    getFullFileUrl: vi.fn(),
-  })),
+  FileService: vi.fn(() => ({})),
 }));
 
-vi.mock('@/server/services/discover', () => ({
-  DiscoverService: vi.fn().mockImplementation(() => ({})),
+vi.mock('@/server/services/sandbox', () => ({
+  createSandboxService: mockCreateSandboxService,
 }));
 
-vi.mock('./_helpers', () => ({
-  scheduleToolCallReport: vi.fn(),
+vi.mock('@/server/services/toolExecution/preprocessLhCommand', () => ({
+  preprocessLhCommand: mockPreprocessLhCommand,
 }));
 
-describe('marketRouter', () => {
+vi.mock('debug', () => ({
+  default: vi.fn(() => vi.fn()),
+}));
+
+describe('tools marketRouter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    getUserSettings.mockResolvedValue({
-      market: {
-        accessToken: 'expired-access-token',
-        refreshToken: 'saved-refresh-token',
-      },
-    });
-    refreshToken.mockResolvedValue({
-      accessToken: 'fresh-access-token',
-      expiresIn: 3600,
-      refreshToken: 'fresh-refresh-token',
-    });
-    updateSetting.mockResolvedValue(undefined);
-    createPreSignedUrl.mockResolvedValue('https://upload.example.com/file');
-    getFileMetadata.mockResolvedValue({
-      contentLength: 123,
-      contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    });
-    createFileRecord.mockResolvedValue({
-      fileId: 'file-1',
-      url: '/f/file-1',
-    });
   });
 
-  it('refreshes market token once and retries execInSandbox after invalid_token', async () => {
-    runBuildInTool
-      .mockResolvedValueOnce({
-        error: {
-          code: 'invalid_token',
-          message: 'Access token is invalid or expired',
-        },
-        success: false,
-      })
-      .mockResolvedValueOnce({
-        data: { result: { ok: true }, sessionExpiredAndRecreated: false },
-        success: true,
-      });
-
+  it('should pass workspace scope when preprocessing sandbox lh commands', async () => {
     const caller = marketRouter.createCaller({
-      oidcAuth: { sub: 'user-1' },
+      serverDB: {},
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
     } as any);
+    mockPreprocessLhCommand.mockResolvedValue({
+      command: 'LOBEHUB_WORKSPACE_ID=workspace-1 npx -y @lobehub/cli agent view agt_1',
+      isLhCommand: true,
+      skipSkillLookup: true,
+    });
+    mockSandboxCallTool.mockResolvedValue({ result: { ok: true }, success: true });
 
-    const result = await caller.execInSandbox({
-      params: { value: 1 },
-      toolName: 'python',
+    await caller.execInSandbox({
+      params: { command: 'lh agent view agt_1' },
+      toolName: 'runCommand',
       topicId: 'topic-1',
     });
 
-    expect(result).toEqual({
-      result: { ok: true },
-      sessionExpiredAndRecreated: false,
-      success: true,
+    expect(mockPreprocessLhCommand).toHaveBeenCalledWith(
+      'lh agent view agt_1',
+      'user-1',
+      'workspace-1',
+    );
+    expect(mockSandboxCallTool).toHaveBeenCalledWith('runCommand', {
+      command: 'LOBEHUB_WORKSPACE_ID=workspace-1 npx -y @lobehub/cli agent view agt_1',
     });
-    expect(refreshToken).toHaveBeenCalledWith({
-      clientId: 'lobechat-com',
-      refreshToken: 'saved-refresh-token',
-    });
-    expect(updateSetting).toHaveBeenCalledWith({
-      market: {
-        accessToken: 'fresh-access-token',
-        expiresAt: expect.any(Number),
-        refreshToken: 'fresh-refresh-token',
-      },
-    });
-    expect(runBuildInTool).toHaveBeenCalledTimes(2);
   });
 
-  it('refreshes market token once and retries exportAndUploadFile after invalid_token', async () => {
-    runBuildInTool
-      .mockResolvedValueOnce({
-        error: {
-          code: 'invalid_token',
-          message: 'Access token is invalid or expired',
+  it('should fall back to static tools when live discovery fails', async () => {
+    const caller = marketRouter.createCaller({ userId: 'user-1' } as any);
+    mockMarketSDK.skills.listLiveTools.mockRejectedValue(new Error('Live discovery failed'));
+    mockMarketSDK.skills.listTools.mockResolvedValue({
+      tools: [
+        {
+          description: 'Run a PostHog query',
+          inputSchema: { properties: { query: { type: 'string' } }, type: 'object' },
+          name: 'query',
         },
-        success: false,
-      })
-      .mockResolvedValueOnce({
-        data: { result: { success: true } },
-        success: true,
-      });
-
-    const caller = marketRouter.createCaller({
-      oidcAuth: { sub: 'user-1' },
-    } as any);
-
-    const result = await caller.exportAndUploadFile({
-      filename: 'deck.pptx',
-      path: '/tmp/deck.pptx',
-      topicId: 'topic-1',
+      ],
     });
 
-    expect(result).toMatchObject({
-      fileId: 'file-1',
-      filename: 'deck.pptx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      size: 123,
-      success: true,
-      url: '/f/file-1',
+    await expect(caller.connectListTools({ provider: 'posthog' })).resolves.toEqual({
+      provider: 'posthog',
+      tools: [
+        {
+          description: 'Run a PostHog query',
+          inputSchema: { properties: { query: { type: 'string' } }, type: 'object' },
+          name: 'query',
+        },
+      ],
     });
-    expect(refreshToken).toHaveBeenCalledWith({
-      clientId: 'lobechat-com',
-      refreshToken: 'saved-refresh-token',
+
+    expect(mockMarketSDK.skills.listLiveTools).toHaveBeenCalledWith('posthog');
+    expect(mockMarketSDK.skills.listTools).toHaveBeenCalledWith('posthog');
+  });
+
+  it('should preserve failed tool call error payloads', async () => {
+    const caller = marketRouter.createCaller({ userId: 'user-1' } as any);
+    mockMarketSDK.skills.callTool.mockResolvedValue({
+      data: null,
+      error: { code: 'POSTHOG_QUERY_FAILED', message: 'Query failed' },
+      success: false,
     });
-    expect(createFileRecord).toHaveBeenCalledWith({
-      fileHash: expect.any(String),
-      fileType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      name: 'deck.pptx',
-      size: 123,
-      url: 'code-interpreter-exports/2026-05-29/topic-1/deck.pptx',
+
+    await expect(
+      caller.connectCallTool({
+        args: { query: 'select * from events' },
+        provider: 'posthog',
+        toolName: 'query',
+      }),
+    ).resolves.toEqual({
+      data: null,
+      error: { code: 'POSTHOG_QUERY_FAILED', message: 'Query failed' },
+      success: false,
     });
-    expect(runBuildInTool).toHaveBeenCalledTimes(2);
+
+    expect(mockMarketSDK.skills.callTool).toHaveBeenCalledWith('posthog', {
+      args: { query: 'select * from events' },
+      tool: 'query',
+      topicId: undefined,
+    });
   });
 });

@@ -7,7 +7,7 @@ const navigateMock = vi.fn();
 let isAdmin = false;
 let isUserStateInit = true;
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   Navigate: ({ to }: { to: string }) => <div>redirect:{to}</div>,
   useNavigate: () => navigateMock,
 }));

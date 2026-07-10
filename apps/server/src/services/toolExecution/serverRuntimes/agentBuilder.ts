@@ -9,6 +9,7 @@ import {
 import { builtinTools } from '@lobechat/builtin-tools';
 import { BRANDING_PROVIDER } from '@lobechat/business-const';
 import { modelsResultsPrompt } from '@lobechat/prompts';
+import { getPluginMode, upsertPluginMode } from '@lobechat/types';
 
 import { AgentModel } from '@/database/models/agent';
 import { PluginModel } from '@/database/models/plugin';
@@ -33,7 +34,12 @@ export const agentBuilderRuntime: ServerRuntimeRegistration = {
 
     const agentModel = new AgentModel(context.serverDB, context.userId, context.workspaceId);
     const pluginModel = new PluginModel(context.serverDB, context.userId, context.workspaceId);
-    const aiInfraRepos = new AiInfraRepos(context.serverDB, context.userId, {});
+    const aiInfraRepos = new AiInfraRepos(
+      context.serverDB,
+      context.userId,
+      {},
+      context.workspaceId,
+    );
     const discoverService = new DiscoverService();
 
     return {
@@ -152,7 +158,7 @@ export const agentBuilderRuntime: ServerRuntimeRegistration = {
         params: UpdateAgentConfigParams,
         ctx: ToolExecutionContext,
       ): Promise<ToolExecutionResult> => {
-        const agentId = ctx.agentId;
+        const agentId = ctx.editingAgentId ?? ctx.agentId;
 
         if (!agentId) {
           return {
@@ -190,16 +196,17 @@ export const agentBuilderRuntime: ServerRuntimeRegistration = {
 
           if (params.togglePlugin) {
             const { pluginId, enabled } = params.togglePlugin;
-            const currentPlugins = (agent.plugins as string[] | null) || [];
-            const isEnabled = currentPlugins.includes(pluginId);
+            const isEnabled = getPluginMode(agent.plugins ?? undefined, pluginId) === 'pinned';
             const shouldEnable = enabled !== undefined ? enabled : !isEnabled;
 
-            const newPlugins =
-              shouldEnable && !isEnabled
-                ? [...currentPlugins, pluginId]
-                : !shouldEnable && isEnabled
-                  ? currentPlugins.filter((id: string) => id !== pluginId)
-                  : currentPlugins;
+            // upsertPluginMode preserves an already-matching entry as-is and
+            // flips a disabled entry back to pinned in place, instead of
+            // blindly pushing a duplicate bare-string identifier.
+            const newPlugins = upsertPluginMode(
+              agent.plugins ?? undefined,
+              pluginId,
+              shouldEnable ? 'pinned' : 'auto',
+            );
 
             finalConfig = { ...finalConfig, plugins: newPlugins };
             updatedParts.push(`plugin ${pluginId} ${shouldEnable ? 'enabled' : 'disabled'}`);
@@ -240,7 +247,7 @@ export const agentBuilderRuntime: ServerRuntimeRegistration = {
         params: UpdatePromptParams,
         ctx: ToolExecutionContext,
       ): Promise<ToolExecutionResult> => {
-        const agentId = ctx.agentId;
+        const agentId = ctx.editingAgentId ?? ctx.agentId;
 
         if (!agentId) {
           return {
@@ -272,7 +279,7 @@ export const agentBuilderRuntime: ServerRuntimeRegistration = {
         params: InstallPluginParams,
         ctx: ToolExecutionContext,
       ): Promise<ToolExecutionResult> => {
-        const agentId = ctx.agentId;
+        const agentId = ctx.editingAgentId ?? ctx.agentId;
 
         if (!agentId) {
           return {
@@ -291,10 +298,13 @@ export const agentBuilderRuntime: ServerRuntimeRegistration = {
               const agent = await agentModel.getAgentConfigById(agentId);
               if (!agent) return { content: `Agent "${agentId}" not found.`, success: false };
 
-              const currentPlugins = (agent.plugins as string[] | null) || [];
-              if (!currentPlugins.includes(identifier)) {
+              if (getPluginMode(agent.plugins ?? undefined, identifier) !== 'pinned') {
                 await agentModel.updateConfig(agentId, {
-                  plugins: [...currentPlugins, identifier],
+                  plugins: upsertPluginMode(
+                    agent.plugins ?? undefined,
+                    identifier,
+                    'pinned',
+                  ) as unknown as string[],
                 });
               }
               return {
@@ -307,9 +317,9 @@ export const agentBuilderRuntime: ServerRuntimeRegistration = {
             }
           }
 
-          // OAuth-based tools (Klavis, LobehubSkill) cannot be installed in background context
+          // OAuth-based tools (Composio, LobehubSkill) cannot be installed in background context
           return {
-            content: `Installing official integrations that require OAuth (Klavis, LobehubSkill) is not supported in background execution. Please install "${identifier}" from the Agent Builder UI instead.`,
+            content: `Installing official integrations that require OAuth (Composio, LobehubSkill) is not supported in background execution. Please install "${identifier}" from the Agent Builder UI instead.`,
             error: { message: 'OAuth not available in background context', type: 'NotSupported' },
             success: false,
           };
@@ -340,10 +350,13 @@ export const agentBuilderRuntime: ServerRuntimeRegistration = {
             }
           }
 
-          const currentPlugins = (agent.plugins as string[] | null) || [];
-          if (!currentPlugins.includes(identifier)) {
+          if (getPluginMode(agent.plugins ?? undefined, identifier) !== 'pinned') {
             await agentModel.updateConfig(agentId, {
-              plugins: [...currentPlugins, identifier],
+              plugins: upsertPluginMode(
+                agent.plugins ?? undefined,
+                identifier,
+                'pinned',
+              ) as unknown as string[],
             });
           }
 

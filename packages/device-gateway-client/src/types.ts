@@ -195,7 +195,20 @@ export interface RpcResponseMessage {
 /** Server → Client: request the desktop to spawn `lh hetero exec`. */
 export interface AgentRunRequestMessage {
   agentType: string;
+  /**
+   * Resolved `lh hetero exec` wrapper args, e.g. `--model` / `--effort`.
+   * Optional for protocol
+   * compatibility with older servers.
+   */
+  args?: string[];
   cwd?: string;
+  /**
+   * Image attachments from the user message, as URLs the device can fetch
+   * (signed S3 URLs). Appended as image content blocks after the prompt so
+   * the CLI gets vision input — mirrors the desktop local-mode
+   * `sendPrompt(imageList)` path. Optional — omitted for older servers.
+   */
+  imageList?: Array<{ id?: string; url: string }>;
   jwt: string;
   operationId: string;
   prompt: string;

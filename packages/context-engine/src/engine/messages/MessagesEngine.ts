@@ -17,6 +17,7 @@ import {
   PlaceholderVariablesProcessor,
   ReactionFeedbackProcessor,
   SupervisorRoleRestoreProcessor,
+  TaskCallbackMessageProcessor,
   TaskMessageProcessor,
   TasksFlattenProcessor,
   ToolCallProcessor,
@@ -33,6 +34,7 @@ import {
   AgentDocumentSystemReplaceInjector,
   AgentManagementContextInjector,
   BotPlatformContextInjector,
+  ContextSelectionsInjector,
   DiscordContextProvider,
   EvalContextSystemInjector,
   ForceFinishSummaryInjector,
@@ -41,6 +43,7 @@ import {
   HistorySummaryProvider,
   KnowledgeInjector,
   LocalSystemToolSnapshotInjector,
+  ModelInfoProvider,
   OnboardingActionHintInjector,
   OnboardingContextInjector,
   OnboardingSyntheticStateInjector,
@@ -136,6 +139,8 @@ export class MessagesEngine {
   private buildProcessors(): ContextProcessor[] {
     const {
       model,
+      modelDisplayName,
+      modelKnowledgeCutoff,
       provider,
       systemRole,
       inputTemplate,
@@ -208,8 +213,7 @@ export class MessagesEngine {
     const currentUserMessage = [...messages]
       .reverse()
       .find((m) => m.role === 'user' && typeof m.content === 'string')?.content as
-      | string
-      | undefined;
+      string | undefined;
 
     // Shared config for all agent document injectors
     const agentDocConfig = {
@@ -244,6 +248,12 @@ export class MessagesEngine {
       }),
       // System date
       new SystemDateProvider({ enabled: isSystemDateEnabled, timezone }),
+      // Model info (name / id / knowledge cutoff)
+      new ModelInfoProvider({
+        displayName: modelDisplayName,
+        knowledgeCutoff: modelKnowledgeCutoff,
+        modelId: model,
+      }),
       // Skill context (available skills list + activated skill content).
       // Disabled in chat mode — pairs with the tools-engine gate so the LLM
       // sees neither the manifests nor the discovery prompt.
@@ -339,7 +349,9 @@ export class MessagesEngine {
       new SelectedSkillInjector({ enabled: hasSelectedSkills, selectedSkills }),
       // Selected tools (ephemeral user-selected @tool for this request)
       new SelectedToolInjector({ enabled: hasSelectedTools, selectedTools }),
-      // Page selections (inject user-selected text into each user message)
+      // Generic user-attached selections from chat/code/text contexts.
+      new ContextSelectionsInjector({ enabled: true }),
+      // Legacy page editor selections.
       new PageSelectionsInjector({ enabled: isPageEditorEnabled }),
       // Local-system file snapshots (replay send-time @file reads as real tool results)
       new LocalSystemToolSnapshotInjector({ enabled: true }),
@@ -407,6 +419,9 @@ export class MessagesEngine {
       // Verify (delivery-checker) cards: drop empty UI-only ones; surface
       // auto-repair failure feedback as a user turn for the repair run
       new VerifyMessageProcessor(),
+      // Task-callback cards: surface a finished task's handoff as a user turn
+      // so the creator agent reads it and continues
+      new TaskCallbackMessageProcessor(),
       // Supervisor role restore
       new SupervisorRoleRestoreProcessor(),
       // Compressed group role transform
@@ -453,6 +468,7 @@ export class MessagesEngine {
       // Message content processing (image encoding, multimodal)
       new MessageContentProcessor({
         fileContext: fileContext || { enabled: true, includeFileUrl: true },
+        isCanUseAudio: capabilities?.isCanUseAudio || (() => false),
         isCanUseVideo: capabilities?.isCanUseVideo || (() => false),
         isCanUseVision: capabilities?.isCanUseVision || (() => true),
         model,

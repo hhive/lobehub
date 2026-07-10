@@ -12,22 +12,23 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('@/store/user', () => ({
-  useUserStore: (selector: (state: { user?: { role?: string } }) => unknown) =>
-    selector({ user: { role: isAdmin ? 'admin' : 'user' } }),
+  useUserStore: (
+    selector: (state: { isUserStateInit: boolean; user?: { role?: string } }) => unknown,
+  ) => selector({ isUserStateInit: true, user: { role: isAdmin ? 'admin' : 'user' } }),
 }));
 
-vi.mock('@/store/user/slices/auth/selectors', () => ({
+vi.mock('@/store/user/selectors', () => ({
   userProfileSelectors: {
     isAdmin: (state: { user?: { role?: string } }) => state.user?.role === 'admin',
   },
 }));
 
-vi.mock('@/features/SkillStore', () => ({
-  createSkillStoreModal: vi.fn(),
+vi.mock('react-router', () => ({
+  useSearchParams: () => [new URLSearchParams()],
 }));
 
-vi.mock('./features/SkillList', () => ({
-  default: () => <div data-testid="skill-list" />,
+vi.mock('./features/LeftPanel', () => ({
+  default: () => <div data-testid="settings-left-panel" />,
 }));
 
 vi.mock('./features/SkillDetail', () => ({
@@ -39,18 +40,17 @@ describe('SkillsSetting page', () => {
     isAdmin = false;
   });
 
-  it('hides the skill store button for non-admin users', () => {
+  it('hides skill settings for non-admin users', () => {
     render(<Page />);
 
-    expect(screen.getByTestId('skill-list')).toBeInTheDocument();
-    expect(screen.queryByLabelText('skillStore.button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('settings-left-panel')).not.toBeInTheDocument();
   });
 
-  it('shows the skill store button for admins', () => {
+  it('shows skill settings for admins', () => {
     isAdmin = true;
 
     render(<Page />);
 
-    expect(screen.getByLabelText('skillStore.button')).toBeInTheDocument();
+    expect(screen.getByTestId('settings-left-panel')).toBeInTheDocument();
   });
 });

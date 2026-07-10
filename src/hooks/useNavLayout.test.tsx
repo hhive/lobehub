@@ -1,41 +1,46 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useNavLayout } from './useNavLayout';
-
-let isAdmin = false;
+interface GlobalStateMock {
+  toggleCommandMenu: () => void;
+}
 
 const mocks = vi.hoisted(() => ({
-  toggleCommandMenu: vi.fn(),
+  activeWorkspaceSlug: null as string | null,
+  isAdmin: false,
+  showMarket: true,
 }));
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
-  }),
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 vi.mock('@/config/routes', () => ({
-  getRouteById: (id: string) => ({ icon: `${id}-icon` }),
+  getRouteById: (id: string) => ({
+    icon: () => id,
+  }),
 }));
 
 vi.mock('@/store/global', () => ({
-  useGlobalStore: (selector: (state: { toggleCommandMenu: typeof mocks.toggleCommandMenu }) => unknown) =>
-    selector({ toggleCommandMenu: mocks.toggleCommandMenu }),
+  useGlobalStore: (selector: (state: GlobalStateMock) => unknown) =>
+    selector({ toggleCommandMenu: vi.fn() }),
 }));
 
 vi.mock('@/store/serverConfig', () => ({
-  featureFlagsSelectors: (state: { hideGitHub?: boolean; showMarket?: boolean }) => ({
-    hideGitHub: !!state.hideGitHub,
-    showMarket: state.showMarket ?? true,
+  featureFlagsSelectors: {},
+  useServerConfigStore: () => ({
+    hideGitHub: false,
+    showMarket: mocks.showMarket,
   }),
-  useServerConfigStore: (selector: (state: { showMarket: boolean }) => unknown) =>
-    selector({ showMarket: true }),
+}));
+
+vi.mock('@/business/client/hooks/useActiveWorkspaceSlug', () => ({
+  useActiveWorkspaceSlug: () => mocks.activeWorkspaceSlug,
 }));
 
 vi.mock('@/store/user', () => ({
   useUserStore: (selector: (state: { user: { role: string } }) => unknown) =>
-    selector({ user: { role: isAdmin ? 'admin' : 'user' } }),
+    selector({ user: { role: mocks.isAdmin ? 'admin' : 'user' } }),
 }));
 
 vi.mock('@/store/user/selectors', () => ({
@@ -46,36 +51,44 @@ vi.mock('@/store/user/selectors', () => ({
 
 describe('useNavLayout', () => {
   beforeEach(() => {
-    isAdmin = false;
+    mocks.activeWorkspaceSlug = null;
+    mocks.isAdmin = false;
+    mocks.showMarket = true;
   });
 
-  it('hides the desktop pages nav item for non-admin users', () => {
+  it('hides Pages for regular users', async () => {
+    const { useNavLayout } = await import('./useNavLayout');
     const { result } = renderHook(() => useNavLayout());
 
     expect(result.current.topNavItems.find((item) => item.key === 'pages')?.hidden).toBe(true);
   });
 
-  it('keeps the desktop pages nav item visible for admins', () => {
-    isAdmin = true;
+  it('shows Pages for admins', async () => {
+    mocks.isAdmin = true;
 
+    const { useNavLayout } = await import('./useNavLayout');
     const { result } = renderHook(() => useNavLayout());
 
     expect(result.current.topNavItems.find((item) => item.key === 'pages')?.hidden).toBe(false);
   });
 
-  it('keeps the community sidebar entry visible for non-admin users', () => {
+  it('keeps Memory visible in personal mode', async () => {
+    const { useNavLayout } = await import('./useNavLayout');
     const { result } = renderHook(() => useNavLayout());
-    const communityItem = result.current.bottomMenuItems.find((item) => item.key === 'community');
 
-    expect(communityItem?.hidden).toBe(false);
-    expect(communityItem?.url).toBe('/community/agent');
+    const memoryItem = result.current.bottomMenuItems.find((item) => item.key === 'memory');
+
+    expect(memoryItem?.hidden).not.toBe(true);
   });
 
-  it('names the generation sidebar item as image generation', () => {
+  it('hides Memory in workspace mode', async () => {
+    mocks.activeWorkspaceSlug = 'lobe-team';
+
+    const { useNavLayout } = await import('./useNavLayout');
     const { result } = renderHook(() => useNavLayout());
 
-    expect(result.current.bottomMenuItems.find((item) => item.key === 'image')?.title).toBe(
-      '生成图片',
-    );
+    const memoryItem = result.current.bottomMenuItems.find((item) => item.key === 'memory');
+
+    expect(memoryItem?.hidden).toBe(true);
   });
 });

@@ -2,11 +2,12 @@
 
 import { Flexbox } from '@lobehub/ui';
 import { memo, useEffect } from 'react';
-import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useParams } from 'react-router';
 
 import { isCustomBranding } from '@/const/version';
+import { useWorkspaceAwareNavigate } from '@/features/Workspace/useWorkspaceAwareNavigate';
 import { useUserStore } from '@/store/user';
-import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
+import { userProfileSelectors } from '@/store/user/selectors';
 
 import DesktopLayoutContainer from './_layout/Desktop/Container';
 import Footer from './(list)/Footer';
@@ -15,7 +16,7 @@ import ProviderMenu from './ProviderMenu';
 
 // Layout component that wraps provider pages with navigation
 export const ProviderLayout = memo(() => {
-  const navigate = useNavigate();
+  const navigate = useWorkspaceAwareNavigate();
   const [isAdmin, isUserStateInit] = useUserStore((s) => [
     userProfileSelectors.isAdmin(s),
     s.isUserStateInit,
@@ -53,7 +54,7 @@ ProviderLayout.displayName = 'ProviderLayout';
 // Detail page component that receives providerId from route params
 export const ProviderDetailPage = memo(() => {
   const params = useParams<{ providerId: string }>();
-  const navigate = useNavigate();
+  const navigate = useWorkspaceAwareNavigate();
   const [isAdmin, isUserStateInit] = useUserStore((s) => [
     userProfileSelectors.isAdmin(s),
     s.isUserStateInit,
@@ -86,17 +87,6 @@ type ProviderPageType = {
 
 const ProviderPage = (props: ProviderPageType) => {
   const { mobile } = props;
-  const navigate = useNavigate();
-  const [isAdmin, isUserStateInit] = useUserStore((s) => [
-    userProfileSelectors.isAdmin(s),
-    s.isUserStateInit,
-  ]);
-
-  useEffect(() => {
-    if (isUserStateInit && !isAdmin) navigate('/settings/profile', { replace: true });
-  }, [isAdmin, isUserStateInit, navigate]);
-
-  if (!isUserStateInit || !isAdmin) return null;
 
   // For mobile or when used via SettingsContent, use the old Page component
   // This is a fallback for non-router usage

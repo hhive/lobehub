@@ -1,20 +1,21 @@
 import { LOBE_CHAT_CLOUD, UTM_SOURCE } from '@lobechat/business-const';
-import { DOWNLOAD_URL, isDesktop } from '@lobechat/const';
+import { isDesktop } from '@lobechat/const';
 import { Flexbox, Hotkey, Icon, Tag } from '@lobehub/ui';
-import { type ItemType } from 'antd/es/menu/interface';
+import type { ItemType } from 'antd/es/menu/interface';
 import { BrainCircuit, Cloudy, Download, HardDriveDownload, LogOut, Settings2 } from 'lucide-react';
-import { type PropsWithChildren } from 'react';
-import { memo, useMemo } from 'react';
+import type { PropsWithChildren } from 'react';
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 import useBusinessMenuItems from '@/business/client/features/User/useBusinessMenuItems';
+import { useHasActiveWorkspace } from '@/business/client/hooks/useHasActiveWorkspace';
 import { type MenuProps } from '@/components/Menu';
 import { DEFAULT_DESKTOP_HOTKEY_CONFIG } from '@/const/desktop';
 import { OFFICIAL_URL } from '@/const/url';
 import DataImporter from '@/features/DataImporter';
+import WorkspaceLink from '@/features/Workspace/WorkspaceLink';
 import { useNavLayout } from '@/hooks/useNavLayout';
-import { usePlatform } from '@/hooks/usePlatform';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
 import { useUserStore } from '@/store/user';
 import { authSelectors, userProfileSelectors } from '@/store/user/selectors';
@@ -56,13 +57,7 @@ export const useMenu = () => {
   const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const { userPanel } = useNavLayout();
   const businessMenuItems = useBusinessMenuItems(isLogin);
-  const { isIOS, isAndroid } = usePlatform();
-
-  const downloadUrl = useMemo(() => {
-    if (isIOS) return DOWNLOAD_URL.ios;
-    if (isAndroid) return DOWNLOAD_URL.android;
-    return DOWNLOAD_URL.default;
-  }, [isIOS, isAndroid]);
+  const hasActiveWorkspace = useHasActiveWorkspace();
 
   const settings: MenuProps['items'] = [
     {
@@ -74,9 +69,11 @@ export const useMenu = () => {
       icon: <Icon icon={Settings2} />,
       key: 'setting',
       label: (
-        <Link to="/settings">
-          <NewVersionBadge showBadge={hasNewVersion}>{t('userPanel.setting')}</NewVersionBadge>
-        </Link>
+        <WorkspaceLink to="/settings">
+          <NewVersionBadge showBadge={hasNewVersion}>
+            {t(hasActiveWorkspace ? 'userPanel.workspaceSetting' : 'userPanel.setting')}
+          </NewVersionBadge>
+        </WorkspaceLink>
       ),
     },
     ...(userPanel.showMemory
@@ -88,18 +85,6 @@ export const useMenu = () => {
           },
         ]
       : []),
-  ];
-
-  const getDesktopApp: MenuProps['items'] = [
-    {
-      icon: <Icon icon={Download} />,
-      key: 'get-desktop-app',
-      label: (
-        <a href={downloadUrl} rel="noopener noreferrer" target="_blank">
-          {t('getDesktopApp')}
-        </a>
-      ),
-    },
   ];
 
   const helps: MenuProps['items'] = [
@@ -118,6 +103,18 @@ export const useMenu = () => {
     },
   ].filter(Boolean) as ItemType[];
 
+  const getApp: MenuProps['items'] = [
+    {
+      icon: <Icon icon={Download} />,
+      key: 'get-app',
+      label: (
+        <WorkspaceLink escape to="/downloads">
+          {t('getApp')}
+        </WorkspaceLink>
+      ),
+    },
+  ];
+
   const mainItems = [
     {
       type: 'divider',
@@ -125,7 +122,6 @@ export const useMenu = () => {
 
     ...(isLogin ? settings : []),
     ...businessMenuItems,
-    ...(isAdmin && !isDesktop ? [{ type: 'divider' as const }, ...getDesktopApp] : []),
     ...(userPanel.showDataImporter && isLogin
       ? [
           {
@@ -139,6 +135,7 @@ export const useMenu = () => {
         ]
       : []),
     ...(!hideDocs ? helps : []),
+    ...(!isDesktop && isAdmin ? getApp : []),
   ]
     .filter(Boolean)
     // Remove consecutive dividers to prevent double divider lines

@@ -12,14 +12,13 @@ vi.mock('@lobehub/ui', () => ({
   Flexbox: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   Outlet: () => <div>provider detail</div>,
   useNavigate: () => navigateMock,
   useParams: () => ({ providerId: 'all' }),
 }));
 
-vi.mock('@/const/version', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/const/version')>()),
+vi.mock('@/const/version', () => ({
   isCustomBranding: true,
 }));
 

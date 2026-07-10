@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router';
 
 const AgentOnboardingRoute = memo(() => {
   return <Navigate replace to="/" />;

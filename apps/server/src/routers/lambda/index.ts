@@ -32,12 +32,14 @@ import { aiChatRouter } from './aiChat';
 import { aiModelRouter } from './aiModel';
 import { aiProviderRouter } from './aiProvider';
 import { apiKeyRouter } from './apiKey';
+import { asrRouter } from './asr';
 import { botMessageRouter } from './botMessage';
 import { briefRouter } from './brief';
 import { changelogRouter } from './changelog';
 import { chunkRouter } from './chunk';
 import { comfyuiRouter } from './comfyui';
 import { communityAssistantRestrictionRouter } from './communityAssistantRestriction';
+import { composioRouter } from './composio';
 import { configRouter } from './config';
 import { connectorRouter } from './connector';
 import { deviceRouter } from './device';
@@ -99,6 +101,7 @@ export const lambdaRouter = router({
   aiModel: aiModelRouter,
   aiProvider: aiProviderRouter,
   apiKey: apiKeyRouter,
+  asr: asrRouter,
   chunk: chunkRouter,
   comfyui: comfyuiRouter,
   config: configRouter,
@@ -117,6 +120,8 @@ export const lambdaRouter = router({
   home: homeRouter,
   image: imageRouter,
   importer: importerRouter,
+  composio: composioRouter,
+
   klavis: klavisRouter,
   knowledge: knowledgeRouter,
   knowledgeBase: knowledgeBaseRouter,

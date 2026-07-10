@@ -5,7 +5,7 @@ import { Bot, Brain, BrainCircuit, House } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 
 import { type MenuProps } from '@/components/Menu';
 import { useUserStore } from '@/store/user';

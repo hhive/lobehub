@@ -4,7 +4,8 @@ import { createStaticStyles, cssVar } from 'antd-style';
 import { Pin, Settings, Store, Zap } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+
+import { useWorkspaceAwareNavigate } from '@/features/Workspace/useWorkspaceAwareNavigate';
 
 import { useUserStore } from '@/store/user';
 import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
@@ -127,7 +128,7 @@ interface PopoverContentProps {
 const PopoverContent = memo<PopoverContentProps>(
   ({ autoCount, items, onOpenStore, pinnedCount }) => {
     const { t } = useTranslation('setting');
-    const navigate = useNavigate();
+    const navigate = useWorkspaceAwareNavigate();
     const [searchKeyword, setSearchKeyword] = useState('');
     const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
@@ -190,7 +191,7 @@ const PopoverContent = memo<PopoverContentProps>(
               type="button"
               onClick={() => {
                 closePopover();
-                navigate('/settings/skill');
+                navigate('/settings/connector');
               }}
             >
               <Icon icon={Settings} size={14} />

@@ -56,7 +56,19 @@ const oidcConfigSchema = z.object({
   usePKCE: z.boolean().optional(),
 });
 
+/**
+ * Non-OAuth credentials the client may set directly when creating/updating a
+ * connector. OAuth2 tokens are intentionally excluded — those are written only
+ * by the OAuth callback after a successful authorization exchange.
+ */
+const connectorCredentialsInputSchema = z.discriminatedUnion('type', [
+  z.object({ token: z.string().min(1), type: z.literal('bearer') }),
+  z.object({ apiKey: z.string().min(1), type: z.literal('apikey') }),
+  z.object({ headers: z.record(z.string()), type: z.literal('header') }),
+]);
+
 const createConnectorSchema = z.object({
+  credentials: connectorCredentialsInputSchema.optional(),
   identifier: z.string().min(1).max(255),
   isEnabled: z.boolean().optional().default(true),
   mcpConnectionType: z
@@ -104,6 +116,32 @@ export const connectorRouter = router({
   }),
 
   /**
+   * Return the connector record with decrypted user-set credentials so the
+   * edit form can pre-fill accurately. Only the connector owner can call this
+   * (enforced by connectorProcedure ownership check).
+   *
+   * Machine-managed secrets are intentionally excluded:
+   * - OAuth access/refresh tokens (type 'oauth2') → stripped, returned as null
+   * - oidcConfig.clientSecret (DCR-registered secret)  → stripped
+   * User-set credentials (bearer token, custom headers) are returned as-is so
+   * the edit form can display them.
+   */
+  getForEdit: connectorProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input, ctx }) => {
+      const connector = await ctx.connectorModel.findById(input.id);
+      if (!connector) throw new TRPCError({ code: 'NOT_FOUND', message: 'Connector not found' });
+
+      const { oidcConfig, credentials, ...rest } = connector;
+      const safeOidcConfig = oidcConfig ? { ...oidcConfig, clientSecret: undefined } : oidcConfig;
+      // OAuth tokens are machine-managed — don't return them; the UI only needs
+      // to know an OAuth flow is configured (reflected via oidcConfig presence).
+      const safeCredentials = credentials?.type === 'oauth2' ? null : credentials;
+
+      return { ...rest, credentials: safeCredentials, oidcConfig: safeOidcConfig };
+    }),
+
+  /**
    * The exact redirect URI the server will send to the OAuth/DCR endpoints.
    * The Add modal must display THIS value (not a client-derived origin) so the
    * URI the user registers matches the one used at authorize time.
@@ -113,13 +151,45 @@ export const connectorRouter = router({
   // ── Mutations ─────────────────────────────────────────────────────────────
 
   create: connectorProcedure.input(createConnectorSchema).mutation(async ({ input, ctx }) => {
-    return ctx.connectorModel.create({
-      ...input,
+    const fields = {
+      // The model expects the decrypted JSON string and encrypts it at rest.
+      credentials: input.credentials ? JSON.stringify(input.credentials) : null,
       mcpConnectionType: input.mcpConnectionType ?? null,
       mcpServerUrl: input.mcpServerUrl ?? null,
       mcpStdioConfig: input.mcpStdioConfig ?? null,
       metadata: input.metadata ?? null,
+      name: input.name,
       oidcConfig: input.oidcConfig ?? null,
+    };
+
+    // Idempotent on (user_id, identifier): re-adding or re-authorizing the same
+    // connector updates the existing row instead of violating the unique index.
+    // Status resets to `disconnected` — the OAuth callback / tool sync promotes
+    // it back to `connected` on success.
+    //
+    // `sourceType` is honored on update so the legacy customPlugin → connector
+    // migration can promote a half-baked `marketplace` row left behind by the
+    // older `syncPluginTools` code path into a proper `custom` row. Without
+    // this the connector would land but never appear in custom-connector
+    // listings (selector filters on sourceType === 'custom'). Safe because the
+    // other callers (`AddConnectorModal`, marketplace bootstrap) always pass
+    // the same sourceType they originally created the row with.
+    const [existing] = await ctx.connectorModel.queryByIdentifiers([input.identifier]);
+    if (existing) {
+      await ctx.connectorModel.update(existing.id, {
+        ...fields,
+        isEnabled: input.isEnabled ?? true,
+        sourceType: input.sourceType,
+        status: ConnectorStatus.disconnected,
+      });
+      return { id: existing.id };
+    }
+
+    return ctx.connectorModel.create({
+      ...fields,
+      identifier: input.identifier,
+      isEnabled: input.isEnabled ?? true,
+      sourceType: input.sourceType,
       status: ConnectorStatus.disconnected,
     });
   }),
@@ -221,11 +291,27 @@ export const connectorRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        patch: createConnectorSchema.partial().omit({ identifier: true, sourceType: true }),
+        patch: createConnectorSchema
+          .partial()
+          .omit({ identifier: true, sourceType: true })
+          // Allow `null` here so an edit can clear credentials (switch to no-auth).
+          .extend({ credentials: connectorCredentialsInputSchema.nullish() }),
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      await ctx.connectorModel.update(input.id, input.patch as any);
+      const { credentials, ...patch } = input.patch;
+      await ctx.connectorModel.update(input.id, {
+        ...patch,
+        // undefined → leave untouched; null → clear; object → encrypt the JSON string.
+        // When credentials are cleared, also drop the cached expiry timestamp so
+        // token-refresh logic doesn't act on a stale value for the new server.
+        ...(credentials === undefined
+          ? {}
+          : {
+              credentials: credentials ? JSON.stringify(credentials) : null,
+              ...(credentials === null ? { tokenExpiresAt: null } : {}),
+            }),
+      } as any);
     }),
 
   delete: connectorProcedure
@@ -312,7 +398,7 @@ export const connectorRouter = router({
     }),
 
   /**
-   * Sync tools from a client-provided list (for Lobehub OAuth skills, Klavis, etc.
+   * Sync tools from a client-provided list (for Lobehub OAuth skills, Composio, etc.
    * that already have their tool list available on the client side).
    * Idempotent — safe to call whenever the detail panel opens.
    */
@@ -395,16 +481,45 @@ export const connectorRouter = router({
    * Bootstrap a connector entry for an installed marketplace plugin.
    * Reads tool list from user_installed_plugins.manifest.api.
    * Idempotent — safe to call on every open of the detail panel.
+   *
+   * Skips `type='customPlugin'` rows that carry an MCP endpoint: those are
+   * legacy custom MCPs and now go through the frontend migration flow
+   * (CustomConnectorModal in `legacyPlugin` mode), which produces a fully
+   * populated `user_connectors` row (with `mcpServerUrl` / `credentials`).
+   * Letting this procedure build a half-baked marketplace row for them would
+   * be filtered out by the runtime (`buildConnectorManifests` requires a
+   * transport endpoint) and would also collide on the unique `(user_id,
+   * identifier)` index when the migration later tries to upsert.
    */
   syncPluginTools: connectorProcedure
     .input(z.object({ identifier: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const plugin = await ctx.pluginModel.findById(input.identifier);
 
-      if (!plugin || !plugin.manifest) {
+      if (!plugin) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: `Plugin '${input.identifier}' not found or has no manifest`,
+          message: `Plugin '${input.identifier}' not found`,
+        });
+      }
+
+      // The customPlugin migration guard MUST run before the manifest check.
+      // The users hit by #15674 are the ones whose legacy custom MCP never
+      // successfully reported a `tools/list` after the v2.2.3 break, so their
+      // `user_installed_plugins.manifest` is NULL / empty. If we threw
+      // NOT_FOUND here the SkillDetail fallback would never render and the
+      // migration modal would never surface — exactly the users we are
+      // trying to rescue. Hand off to the frontend migration flow first;
+      // returning null tells the caller "no connector row produced" and the
+      // "Configure" button opens CustomConnectorModal in migration mode.
+      if (plugin.type === 'customPlugin' && plugin.customParams?.mcp) {
+        return { connectorId: null, toolCount: 0 };
+      }
+
+      if (!plugin.manifest) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Plugin '${input.identifier}' has no manifest`,
         });
       }
 

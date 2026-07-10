@@ -1,4 +1,5 @@
 import {
+  nanoBanana2LiteParameters,
   nanoBanana2Parameters,
   nanoBananaParameters,
   nanoBananaProParameters,
@@ -14,6 +15,7 @@ import type { AIChatModelCard, AIImageModelCard, AIVideoModelCard } from '../typ
 const googleChatModels: AIChatModelCard[] = [
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -24,7 +26,9 @@ const googleChatModels: AIChatModelCard[] = [
     contextWindowTokens: 1_048_576 + 65_536,
     description: 'Points to gemini-3.1-pro-preview',
     displayName: 'Gemini Pro Latest',
+    family: 'gemini',
     id: 'gemini-pro-latest',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -66,6 +70,7 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -75,7 +80,9 @@ const googleChatModels: AIChatModelCard[] = [
     contextWindowTokens: 1_048_576 + 65_536,
     description: 'Points to gemini-3-flash-preview',
     displayName: 'Gemini Flash Latest',
+    family: 'gemini',
     id: 'gemini-flash-latest',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -93,6 +100,7 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -102,7 +110,9 @@ const googleChatModels: AIChatModelCard[] = [
     contextWindowTokens: 1_048_576 + 65_536,
     description: 'Points to gemini-3.1-flash-lite',
     displayName: 'Gemini Flash-Lite Latest',
+    family: 'gemini',
     id: 'gemini-flash-lite-latest',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -120,6 +130,7 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -132,7 +143,10 @@ const googleChatModels: AIChatModelCard[] = [
       "Gemini's most intelligent model built for speed, combining frontier intelligence with superior search and grounding.",
     displayName: 'Gemini 3.5 Flash',
     enabled: true,
+    family: 'gemini',
+    generation: 'gemini-3.5',
     id: 'gemini-3.5-flash',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -170,7 +184,10 @@ const googleChatModels: AIChatModelCard[] = [
       "Gemini 3.1 Flash Image (Nano Banana 2) is Google's fastest native image generation model with thinking support, conversational image generation and editing.",
     displayName: 'Nano Banana 2',
     enabled: true,
+    family: 'gemini',
+    generation: 'gemini-3.1',
     id: 'gemini-3.1-flash-image-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_768,
     pricing: {
       approximatePricePerImage: 0.067,
@@ -191,6 +208,41 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      // no functionCall: the runtime always requests ['Text', 'Image'] modalities for
+      // nano-banana models, and Vertex AI rejects function declarations in that mode
+      imageOutput: true,
+      reasoning: true,
+      vision: true,
+    },
+    contextWindowTokens: 65_536 + 4_096,
+    description:
+      "Gemini 3.1 Flash Lite Image (Nano Banana 2 Lite) is Google's fastest and most cost-efficient image generation model, built for high-volume generation and editing.",
+    displayName: 'Nano Banana 2 Lite',
+    enabled: true,
+    family: 'gemini',
+    generation: 'gemini-3.1',
+    id: 'gemini-3.1-flash-lite-image',
+    knowledgeCutoff: '2025-01',
+    maxOutput: 4_096,
+    pricing: {
+      approximatePricePerImage: 0.034,
+      units: [
+        { name: 'imageOutput', rate: 30, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'textInput', rate: 0.25, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'imageInput', rate: 0.25, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'textOutput', rate: 1.5, strategy: 'fixed', unit: 'millionTokens' },
+      ],
+    },
+    releasedAt: '2026-06-30',
+    settings: {
+      // no imageResolution2: output resolution is fixed at 1K for the Lite model
+      extendParams: ['imageAspectRatio2'],
+    },
+    type: 'chat',
+  },
+  {
+    abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -203,7 +255,10 @@ const googleChatModels: AIChatModelCard[] = [
       'Gemini 3.1 Pro Preview improves on Gemini 3 Pro with enhanced reasoning capabilities and adds medium thinking level support.',
     displayName: 'Gemini 3.1 Pro Preview',
     enabled: true,
+    family: 'gemini',
+    generation: 'gemini-3.1',
     id: 'gemini-3.1-pro-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -279,6 +334,7 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -291,7 +347,10 @@ const googleChatModels: AIChatModelCard[] = [
       "Gemini 3.1 Flash-Lite is Google's most cost-efficient multimodal model, optimized for high-volume agentic tasks, translation, and data processing.",
     displayName: 'Gemini 3.1 Flash-Lite',
     enabled: true,
+    family: 'gemini',
+    generation: 'gemini-3.1',
     id: 'gemini-3.1-flash-lite',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -315,6 +374,7 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -326,7 +386,10 @@ const googleChatModels: AIChatModelCard[] = [
     description:
       "Gemini 3.1 Flash-Lite Preview is Google's most cost-efficient multimodal model, optimized for high-volume agentic tasks, translation, and data processing.",
     displayName: 'Gemini 3.1 Flash-Lite Preview',
+    family: 'gemini',
+    generation: 'gemini-3.1',
     id: 'gemini-3.1-flash-lite-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -348,6 +411,7 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -358,7 +422,10 @@ const googleChatModels: AIChatModelCard[] = [
     description:
       'Gemini 3 Flash is the smartest model built for speed, combining cutting-edge intelligence with excellent search grounding.',
     displayName: 'Gemini 3 Flash Preview',
+    family: 'gemini',
+    generation: 'gemini-3',
     id: 'gemini-3-flash-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -395,7 +462,10 @@ const googleChatModels: AIChatModelCard[] = [
     description:
       'Gemini 3 Pro Image (Nano Banana Pro) is Google’s image generation model and also supports multimodal chat.',
     displayName: 'Nano Banana Pro',
+    family: 'gemini',
+    generation: 'gemini-3',
     id: 'gemini-3-pro-image-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_768,
     pricing: {
       approximatePricePerImage: 0.134,
@@ -423,7 +493,10 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 262_144 + 32_768,
     displayName: 'Gemma 4 26B A4B IT',
+    family: 'gemma',
+    generation: 'gemma-4',
     id: 'gemma-4-26b-a4b-it',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_768,
     pricing: {
       units: [
@@ -448,7 +521,10 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 262_144 + 32_768,
     displayName: 'Gemma 4 31B IT',
+    family: 'gemma',
+    generation: 'gemma-4',
     id: 'gemma-4-31b-it',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_768,
     pricing: {
       units: [
@@ -466,6 +542,7 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -476,7 +553,10 @@ const googleChatModels: AIChatModelCard[] = [
     description:
       'Gemini 2.5 Pro is Google’s most advanced reasoning model, able to reason over code, math, and STEM problems and analyze large datasets, codebases, and documents with long context.',
     displayName: 'Gemini 2.5 Pro',
+    family: 'gemini',
+    generation: 'gemini-2.5',
     id: 'gemini-2.5-pro',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -552,6 +632,7 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -561,7 +642,10 @@ const googleChatModels: AIChatModelCard[] = [
     contextWindowTokens: 1_048_576 + 65_536,
     description: 'Gemini 2.5 Flash is Google’s best-value model with full capabilities.',
     displayName: 'Gemini 2.5 Flash',
+    family: 'gemini',
+    generation: 'gemini-2.5',
     id: 'gemini-2.5-flash',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -590,7 +674,10 @@ const googleChatModels: AIChatModelCard[] = [
     description:
       'Nano Banana is Google’s newest, fastest, and most efficient native multimodal model, enabling conversational image generation and editing.',
     displayName: 'Nano Banana',
+    family: 'gemini',
+    generation: 'gemini-2.5',
     id: 'gemini-2.5-flash-image',
+    knowledgeCutoff: '2025-06',
     maxOutput: 32_768,
     pricing: {
       approximatePricePerImage: 0.039,
@@ -609,6 +696,7 @@ const googleChatModels: AIChatModelCard[] = [
   },
   {
     abilities: {
+      audio: true,
       functionCall: true,
       reasoning: true,
       search: true,
@@ -619,7 +707,10 @@ const googleChatModels: AIChatModelCard[] = [
     description:
       'Gemini 2.5 Flash-Lite is Google’s smallest, best-value model, designed for large-scale use.',
     displayName: 'Gemini 2.5 Flash-Lite',
+    family: 'gemini',
+    generation: 'gemini-2.5',
     id: 'gemini-2.5-flash-lite',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -646,7 +737,10 @@ const googleChatModels: AIChatModelCard[] = [
     description:
       'Gemini 2.0 Flash delivers next-gen features including exceptional speed, native tool use, multimodal generation, and a 1M-token context window.',
     displayName: 'Gemini 2.0 Flash',
+    family: 'gemini',
+    generation: 'gemini-2.0',
     id: 'gemini-2.0-flash',
+    knowledgeCutoff: '2024-08',
     maxOutput: 8192,
     pricing: {
       units: [
@@ -673,7 +767,10 @@ const googleChatModels: AIChatModelCard[] = [
     description:
       'Gemini 2.0 Flash delivers next-gen features including exceptional speed, native tool use, multimodal generation, and a 1M-token context window.',
     displayName: 'Gemini 2.0 Flash 001',
+    family: 'gemini',
+    generation: 'gemini-2.0',
     id: 'gemini-2.0-flash-001',
+    knowledgeCutoff: '2024-08',
     maxOutput: 8192,
     pricing: {
       units: [
@@ -697,7 +794,10 @@ const googleChatModels: AIChatModelCard[] = [
     contextWindowTokens: 1_048_576 + 8192,
     description: 'A Gemini 2.0 Flash variant optimized for cost efficiency and low latency.',
     displayName: 'Gemini 2.0 Flash-Lite',
+    family: 'gemini',
+    generation: 'gemini-2.0',
     id: 'gemini-2.0-flash-lite',
+    knowledgeCutoff: '2024-08',
     maxOutput: 8192,
     pricing: {
       units: [
@@ -715,7 +815,10 @@ const googleChatModels: AIChatModelCard[] = [
     contextWindowTokens: 1_048_576 + 8192,
     description: 'A Gemini 2.0 Flash variant optimized for cost efficiency and low latency.',
     displayName: 'Gemini 2.0 Flash-Lite 001',
+    family: 'gemini',
+    generation: 'gemini-2.0',
     id: 'gemini-2.0-flash-lite-001',
+    knowledgeCutoff: '2024-08',
     maxOutput: 8192,
     pricing: {
       units: [
@@ -752,6 +855,25 @@ const googleImageModels: AIImageModelCard[] = [
       units: [
         { name: 'imageOutput', rate: 60, strategy: 'fixed', unit: 'millionTokens' },
         { name: 'textInput', rate: 0.25, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'textOutput', rate: 1.5, strategy: 'fixed', unit: 'millionTokens' },
+      ],
+    },
+  },
+  {
+    displayName: 'Nano Banana 2 Lite',
+    id: 'gemini-3.1-flash-lite-image:image',
+    type: 'image',
+    enabled: true,
+    description:
+      "Gemini 3.1 Flash Lite Image (Nano Banana 2 Lite) is Google's fastest and most cost-efficient image generation model, built for high-volume generation and editing.",
+    releasedAt: '2026-06-30',
+    parameters: nanoBanana2LiteParameters,
+    pricing: {
+      approximatePricePerImage: 0.034,
+      units: [
+        { name: 'imageOutput', rate: 30, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'textInput', rate: 0.25, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'imageInput', rate: 0.25, strategy: 'fixed', unit: 'millionTokens' },
         { name: 'textOutput', rate: 1.5, strategy: 'fixed', unit: 'millionTokens' },
       ],
     },

@@ -103,34 +103,14 @@ Given('用户进入 小逆chat 对话页面', { timeout: 30_000 }, async functio
   llmMockManager.setResponse('hello', presetResponses.greeting);
   await llmMockManager.setup(this.page);
 
-  console.log('   📍 Step: 导航到首页...');
-  // Navigate to home page first
-  await this.page.goto('/');
-  await this.page.waitForLoadState('networkidle', { timeout: WAIT_TIMEOUT });
-
-  console.log('   📍 Step: 查找 小逆chat...');
-  // Find and click on "小逆chat" agent in the sidebar/home
-  const lobeAIAgent = this.page.locator('text=小逆chat').first();
-  await expect(lobeAIAgent).toBeVisible({ timeout: WAIT_TIMEOUT });
-
-  console.log('   📍 Step: 点击 小逆chat...');
-  await lobeAIAgent.click();
-
-  console.log('   📍 Step: 等待聊天界面加载...');
-  // Wait for the chat interface to be ready
-  await this.page.waitForLoadState('networkidle', { timeout: WAIT_TIMEOUT });
+  console.log('   📍 Step: 直接进入 小逆chat 对话路由...');
+  await this.page.goto('/agent/inbox', { waitUntil: 'domcontentloaded' });
 
   console.log('   📍 Step: 查找输入框...');
-  // The input is a rich text editor with contenteditable
-  // There are 2 ChatInput components (desktop & mobile), find the visible one
-
-  // Wait for the page to be ready, then find visible chat input
-  await this.page.waitForTimeout(1000);
-
   await focusChatInput.call(this);
 
   // Wait for any animations to complete
-  await this.page.waitForTimeout(300);
+  await this.page.waitForTimeout(100);
 
   console.log('   ✅ 已进入 小逆chat 对话页面');
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionIcon, Block, DropdownMenu, Flexbox, Icon, Modal, Tag } from '@lobehub/ui';
+import { ActionIcon, Block, DropdownMenu, Flexbox, Icon, Tag } from '@lobehub/ui';
 import { confirmModal } from '@lobehub/ui/base-ui';
 import { SkillsIcon } from '@lobehub/ui/icons';
 import { createStaticStyles, cssVar } from 'antd-style';
@@ -8,7 +8,9 @@ import { DownloadIcon, MoreVerticalIcon, PackageSearch, Trash2 } from 'lucide-re
 import { lazy, memo, Suspense, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import ImperativeModal from '@/components/ImperativeModal';
 import SkillAvatar from '@/components/SkillAvatar';
+import { usePermission } from '@/hooks/usePermission';
 import { agentSkillService } from '@/services/skill';
 import { useToolStore } from '@/store/tool';
 import { type SkillListItem } from '@/types/index';
@@ -49,6 +51,7 @@ const AgentSkillItem = memo<AgentSkillItemProps>(({ showLobeHubTag, skill }) => 
   const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { allowed: canEdit } = usePermission('edit_own_content');
   const deleteAgentSkill = useToolStore((s) => s.deleteAgentSkill);
 
   const handleDownload = async () => {
@@ -66,6 +69,7 @@ const AgentSkillItem = memo<AgentSkillItemProps>(({ showLobeHubTag, skill }) => 
   };
 
   const handleDelete = () => {
+    if (!canEdit) return;
     confirmModal({
       cancelText: tc('cancel'),
       content: t('store.actions.confirmUninstall'),
@@ -106,6 +110,7 @@ const AgentSkillItem = memo<AgentSkillItemProps>(({ showLobeHubTag, skill }) => 
           <Flexbox horizontal>
             {skill.source === 'user' && (
               <ActionIcon
+                disabled={!canEdit}
                 icon={PackageSearch}
                 title={t('store.actions.manifest')}
                 onClick={() => setEditOpen(true)}
@@ -128,6 +133,7 @@ const AgentSkillItem = memo<AgentSkillItemProps>(({ showLobeHubTag, skill }) => 
                   : []),
                 {
                   danger: true,
+                  disabled: !canEdit,
                   icon: <Icon icon={Trash2} />,
                   key: 'uninstall',
                   label: t('store.actions.uninstall'),
@@ -135,12 +141,12 @@ const AgentSkillItem = memo<AgentSkillItemProps>(({ showLobeHubTag, skill }) => 
                 },
               ]}
             >
-              <ActionIcon icon={MoreVerticalIcon} loading={loading} />
+              <ActionIcon disabled={!canEdit} icon={MoreVerticalIcon} loading={loading} />
             </DropdownMenu>
           </Flexbox>
         </Block>
       </Flexbox>
-      <Modal
+      <ImperativeModal
         destroyOnHidden
         footer={null}
         open={detailOpen}
@@ -152,7 +158,7 @@ const AgentSkillItem = memo<AgentSkillItemProps>(({ showLobeHubTag, skill }) => 
         <Suspense fallback={<div style={{ height: '100%' }} />}>
           <AgentSkillDetail skillId={skill.id} />
         </Suspense>
-      </Modal>
+      </ImperativeModal>
       {skill.source === 'user' && (
         <Suspense>
           <AgentSkillEdit open={editOpen} skillId={skill.id} onClose={() => setEditOpen(false)} />

@@ -6,16 +6,20 @@ import debug from 'debug';
 import { memo, Suspense, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useBusinessConversationAnalytics } from '@/business/client/hooks/useBusinessConversationAnalytics';
 import AgentHome from '@/features/AgentHome';
 import ChatMiniMap from '@/features/ChatMiniMap';
 import { ChatList, ConversationProvider } from '@/features/Conversation';
 import { useChatFollowUp } from '@/features/Conversation/hooks/useChatFollowUp';
+import {
+  ForwardMessageDispatcher,
+  MessageForwardFooter,
+} from '@/features/Conversation/MessageForward';
 import { mergeConversationHooks } from '@/features/Conversation/utils/mergeConversationHooks';
-import ZenModeToast from '@/features/ZenModeToast';
 import { useGatewayReconnect } from '@/hooks/useGatewayReconnect';
 import { useOperationState } from '@/hooks/useOperationState';
 import { useAgentStore } from '@/store/agent';
-import { agentChatConfigSelectors, agentSelectors } from '@/store/agent/selectors';
+import { agentByIdSelectors, chatConfigByIdSelectors } from '@/store/agent/selectors';
 import { useChatStore } from '@/store/chat';
 import { threadSelectors, topicSelectors } from '@/store/chat/selectors';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
@@ -59,7 +63,9 @@ const Conversation = memo(() => {
   // Heterogeneous agents (Claude Code, etc.) use a simplified input — their
   // toolchain/memory/model are managed by the external runtime, so LobeHub's
   // model/tools/memory/KB/MCP/runtime-mode pickers don't apply.
-  const isHeterogeneousAgent = useAgentStore(agentSelectors.isCurrentAgentHeterogeneous);
+  const isHeterogeneousAgent = useAgentStore(
+    agentByIdSelectors.isAgentHeterogeneousById(context.agentId),
+  );
 
   // Subagent threads (spawned by an external agent's subagent tool call) are
   // read-only — the parent agent drives their execution, so hide the input.
@@ -73,15 +79,19 @@ const Conversation = memo(() => {
   );
   useGatewayReconnect(context.topicId, runningOperation);
 
-  const agentChatConfig = useAgentStore(agentChatConfigSelectors.currentChatConfig);
+  const agentChatConfig = useAgentStore(chatConfigByIdSelectors.getChatConfigById(context.agentId));
   const chatFollowUpHooks = useChatFollowUp({
     agentChatConfig,
     conversationKey: chatKey,
     threadId: context.threadId ?? undefined,
     topicId: context.topicId ?? undefined,
   });
+  const businessAnalyticsHooks = useBusinessConversationAnalytics(context);
 
-  const hooks = useMemo(() => mergeConversationHooks(chatFollowUpHooks), [chatFollowUpHooks]);
+  const hooks = useMemo(
+    () => mergeConversationHooks(businessAnalyticsHooks, chatFollowUpHooks),
+    [businessAnalyticsHooks, chatFollowUpHooks],
+  );
 
   return (
     <ConversationProvider
@@ -95,7 +105,6 @@ const Conversation = memo(() => {
         replaceMessages(messages, { context: ctx });
       }}
     >
-      <ZenModeToast />
       <Flexbox
         flex={1}
         width={'100%'}
@@ -131,9 +140,14 @@ const Conversation = memo(() => {
           }
         />
       </Flexbox>
-      {!isSubagentThread && (isHeterogeneousAgent ? <HeterogeneousChatInput /> : <MainChatInput />)}
+      {!isSubagentThread && (
+        <MessageForwardFooter>
+          {isHeterogeneousAgent ? <HeterogeneousChatInput /> : <MainChatInput />}
+        </MessageForwardFooter>
+      )}
       <ThreadHydration />
       <ChatMiniMap />
+      <ForwardMessageDispatcher />
       <Suspense>
         <MessageFromUrl />
       </Suspense>

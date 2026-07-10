@@ -3,8 +3,7 @@ import { z } from 'zod';
 import { withScopedPermission } from '@/business/server/trpc-middlewares/rbacPermission';
 import { wsCompatProcedure } from '@/business/server/trpc-middlewares/workspaceAuth';
 import { TopicModel } from '@/database/models/topic';
-import { getServerDB } from '@/database/server';
-import { publicProcedure, router } from '@/libs/trpc/lambda';
+import { router } from '@/libs/trpc/lambda';
 import { serverDatabase } from '@/libs/trpc/lambda/middleware';
 import { type BatchTaskResult } from '@/types/service';
 
@@ -52,7 +51,7 @@ export const topicRouter = router({
     }),
 
   batchDeleteBySessionId: topicDeleteProcedure
-    .input(z.object({ id: z.string().nullable().optional() }))
+    .input(z.object({ id: z.string().nullish() }))
     .mutation(async ({ input, ctx }) => {
       return ctx.topicModel.batchDeleteBySessionId(input.id);
     }),
@@ -83,9 +82,9 @@ export const topicRouter = router({
     .input(
       z.object({
         favorite: z.boolean().optional(),
-        groupId: z.string().nullable().optional(),
+        groupId: z.string().nullish(),
         messages: z.array(z.string()).optional(),
-        sessionId: z.string().nullable().optional(),
+        sessionId: z.string().nullish(),
         title: z.string(),
       }),
     )
@@ -95,26 +94,16 @@ export const topicRouter = router({
       return data.id;
     }),
 
-  getAllTopics: topicProcedure.query(async ({ ctx }) => {
-    return ctx.topicModel.queryAll();
-  }),
-
-  // TODO: this procedure should be used with authedProcedure
-  getTopics: publicProcedure
+  getTopics: topicProcedure
     .input(
       z.object({
-        containerId: z.string().nullable().optional(),
+        containerId: z.string().nullish(),
         current: z.number().optional(),
         pageSize: z.number().optional(),
       }),
     )
     .query(async ({ input, ctx }) => {
-      if (!ctx.userId) return [];
-
-      const serverDB = await getServerDB();
-      const topicModel = new TopicModel(serverDB, ctx.userId, ctx.workspaceId ?? undefined);
-
-      return topicModel.query(input);
+      return ctx.topicModel.query(input);
     }),
 
   hasTopics: topicProcedure.query(async ({ ctx }) => {
@@ -138,9 +127,9 @@ export const topicRouter = router({
   searchTopics: topicProcedure
     .input(
       z.object({
-        groupId: z.string().nullable().optional(),
+        groupId: z.string().nullish(),
         keywords: z.string(),
-        sessionId: z.string().nullable().optional(),
+        sessionId: z.string().nullish(),
       }),
     )
     .query(async ({ input, ctx }) => {

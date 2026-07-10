@@ -11,12 +11,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
 }));
 
 vi.mock('@lobehub/ui', async () => {
-  const actual = await vi.importActual<typeof import('@lobehub/ui')>('@lobehub/ui');
+  const actual = (await vi.importActual('@lobehub/ui')) as Record<string, unknown>;
 
   return {
     ...actual,

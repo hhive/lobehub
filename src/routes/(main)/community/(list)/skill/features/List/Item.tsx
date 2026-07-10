@@ -7,11 +7,12 @@ import { createStaticStyles, cssVar } from 'antd-style';
 import { ClockIcon, FileTextIcon, StarIcon } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
 import urlJoin from 'url-join';
 
 import PublishedTime from '@/components/PublishedTime';
 import { LOBEHUB_REMOTE_TAG } from '@/features/SkillStore/SkillList/lobehubRemote';
+import { useWorkspaceAwareNavigate } from '@/features/Workspace/useWorkspaceAwareNavigate';
+import WorkspaceLink from '@/features/Workspace/WorkspaceLink';
 import { discoverService } from '@/services/discover';
 import { type DiscoverSkillItem } from '@/types/discover';
 
@@ -66,7 +67,7 @@ const SkillItem = memo<DiscoverSkillItem & { showLobeHubTag?: boolean }>(
     showLobeHubTag,
   }) => {
     const { t } = useTranslation('discover');
-    const navigate = useNavigate();
+    const navigate = useWorkspaceAwareNavigate();
     const link = urlJoin('/community/skill', identifier);
 
     const handleClick = useCallback(() => {
@@ -128,11 +129,11 @@ const SkillItem = memo<DiscoverSkillItem & { showLobeHubTag?: boolean }>(
                   overflow: 'hidden',
                 }}
               >
-                <Link style={{ color: 'inherit', flex: 1, minWidth: 0, overflow: 'hidden' }} to={link}>
+                <WorkspaceLink style={{ color: 'inherit', overflow: 'hidden' }} to={link}>
                   <Text ellipsis as={'h2'} className={styles.title}>
                     {name}
                   </Text>
-                </Link>
+                </WorkspaceLink>
                 {showLobeHubTag && (
                   <Tag size={'small'} style={{ flex: 'none' }}>
                     {LOBEHUB_REMOTE_TAG}

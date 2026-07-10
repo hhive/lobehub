@@ -39,6 +39,8 @@ vi.mock('@/server/modules/KeyVaultsEncrypt', () => ({
 vi.mock('@/database/models/message', () => ({
   MessageModel: vi.fn().mockImplementation(() => ({
     create: mockMessageCreate,
+    getLatestNonToolMessageId: vi.fn().mockResolvedValue(undefined),
+    getLatestSpineMessageId: vi.fn().mockResolvedValue(undefined),
     query: vi.fn().mockResolvedValue([]),
     update: vi.fn().mockResolvedValue({}),
   })),
@@ -97,9 +99,9 @@ vi.mock('@/server/services/market', () => ({
   })),
 }));
 
-vi.mock('@/server/services/klavis', () => ({
-  KlavisService: vi.fn().mockImplementation(() => ({
-    getKlavisManifests: vi.fn().mockResolvedValue([]),
+vi.mock('@/server/services/composio', () => ({
+  ComposioService: vi.fn().mockImplementation(() => ({
+    getComposioManifests: vi.fn().mockResolvedValue([]),
   })),
 }));
 

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { TRACING_SCENARIOS } from '@lobechat/const';
 import { getErrorCodeSpec } from '@lobechat/model-runtime';
 import type { CreateMessageParams, SendMessageServerResponse } from '@lobechat/types';
 import { AiSendMessageServerSchema, RequestTrigger, StructureOutputSchema } from '@lobechat/types';
@@ -28,6 +29,7 @@ const log = debug('lobe-lambda-router:ai-chat');
 const { createPrefixedTimingContext, logTiming, runTimedStage } = createTimingHelpers(
   'lobe-server:chat:lobehub:timing',
 );
+const SILENT_TRPC_ERROR_LOG_KEY = '__lobeSilentTRPCErrorLog';
 
 type TRPCErrorCode = ConstructorParameters<typeof TRPCError>[0]['code'];
 type TRPCStatusCode = Parameters<typeof getStatusKeyFromCode>[0];
@@ -49,16 +51,52 @@ const getTRPCErrorCodeFromStatus = (status: number): TRPCErrorCode => {
   return 'INTERNAL_SERVER_ERROR';
 };
 
-const createRuntimeTRPCError = (error: unknown): TRPCError | undefined => {
+const markSilentTRPCErrorLog = (error: unknown) => {
+  if (!error || typeof error !== 'object') return;
+
+  try {
+    Object.defineProperty(error, SILENT_TRPC_ERROR_LOG_KEY, {
+      configurable: true,
+      value: true,
+    });
+  } catch {
+    // Best-effort logging hint; never let it mask the original runtime error.
+  }
+};
+
+const createRuntimeTRPCError = (
+  error: unknown,
+  options?: { silentHandlerLog?: boolean },
+): TRPCError | undefined => {
   const errorType = getRuntimeErrorType(error);
   const spec = getErrorCodeSpec(errorType);
-  if (!errorType || !spec) return;
+  if (errorType && spec) {
+    if (options?.silentHandlerLog && spec.httpStatus < 500) markSilentTRPCErrorLog(error);
 
-  return new TRPCError({
-    cause: error,
-    code: getTRPCErrorCodeFromStatus(spec.httpStatus),
-    message: errorType,
-  });
+    return new TRPCError({
+      cause: error,
+      code: getTRPCErrorCodeFromStatus(spec.httpStatus),
+      message: errorType,
+    });
+  }
+
+  // Raw provider SDK errors (OpenAI/Anthropic APIError) carry an HTTP status
+  // but no errorType — the generateObject path rethrows upstream errors
+  // verbatim. Without this mapping, tRPC classifies them as
+  // INTERNAL_SERVER_ERROR, so a user-channel 4xx (e.g. a BYOK provider
+  // rejecting the request) pollutes server 500 monitoring.
+  const status = (error as { status?: unknown } | undefined)?.status;
+  if (typeof status === 'number' && status >= 400 && status < 500) {
+    if (options?.silentHandlerLog) markSilentTRPCErrorLog(error);
+
+    return new TRPCError({
+      cause: error,
+      code: getTRPCErrorCodeFromStatus(status),
+      message: error instanceof Error ? error.message : `Provider error (${status})`,
+    });
+  }
+
+  return undefined;
 };
 
 const aiChatProcedure = wsCompatProcedure.use(serverDatabase).use(async (opts) => {
@@ -113,7 +151,9 @@ export const aiChatRouter = router({
         },
       );
     } catch (error) {
-      const runtimeTRPCError = createRuntimeTRPCError(error);
+      const runtimeTRPCError = createRuntimeTRPCError(error, {
+        silentHandlerLog: input.tracing?.scenario === TRACING_SCENARIOS.InputCompletion,
+      });
       if (runtimeTRPCError) throw runtimeTRPCError;
 
       throw error;
@@ -240,6 +280,35 @@ export const aiChatRouter = router({
 
       let parentId = input.newUserMessage.parentId;
 
+      // Server-authoritative parent resolution (concurrent-append race fix).
+      //
+      // The client derives parentId from a local snapshot of the conversation
+      // tail, but that tail can advance server-side without the client knowing
+      // — e.g. another assistant turn is persisted while the user is composing
+      // or right as they hit send. Trusting the client's stale parentId forks
+      // the new user turn off an earlier node instead of the real head, which
+      // splits the conversation.
+      //
+      // For a plain append to an existing topic we re-read the spine head from
+      // the DB so the message attaches after the latest assistant turn. Note we
+      // anchor on the spine head (latest non-tool, non-signal message), NOT the
+      // raw latest row: tool results are inline children of their assistant
+      // turn, so a new user turn parents off the assistant, never a tool result.
+      // A brand-new topic (no prior messages) or a brand-new thread (must anchor
+      // on its explicit branch point / sourceMessageId) keep the client parentId.
+      //
+      // Fall back to the client parentId when the spine head is absent (no spine
+      // message yet), so we never orphan the turn by overwriting it to undefined.
+      if (topicId && !input.newTopic && !input.newThread) {
+        const resolvedParentId = await runTimedStage(
+          timingContext,
+          'lambda.aiChat.resolveParentId',
+          () => ctx.messageModel.getLatestSpineMessageId({ threadId, topicId }),
+          { hasThreadId: !!threadId },
+        );
+        parentId = resolvedParentId ?? parentId;
+      }
+
       if (input.preloadMessages?.length) {
         log('creating %d preload messages before user message', input.preloadMessages.length);
 
@@ -282,11 +351,16 @@ export const aiChatRouter = router({
       // create user message
       log('creating user message with content length: %d', input.newUserMessage.content.length);
 
-      // Build user message metadata with pageSelections if present
+      // Build user message metadata with attached context selections if present.
       const userMessageMetadata =
-        input.newUserMessage.metadata || input.newUserMessage.pageSelections?.length
+        input.newUserMessage.metadata ||
+        input.newUserMessage.contextSelections?.length ||
+        input.newUserMessage.pageSelections?.length
           ? {
               ...input.newUserMessage.metadata,
+              ...(input.newUserMessage.contextSelections?.length
+                ? { contextSelections: input.newUserMessage.contextSelections }
+                : undefined),
               ...(input.newUserMessage.pageSelections?.length
                 ? { pageSelections: input.newUserMessage.pageSelections }
                 : undefined),
@@ -330,7 +404,6 @@ export const aiChatRouter = router({
             { assistantMessage, userMessage },
             {
               ...(modelTiming ? { timing: modelTiming } : {}),
-              touchTopicUpdatedAt: !isCreateNewTopic,
             },
           );
         },

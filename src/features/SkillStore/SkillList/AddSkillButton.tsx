@@ -1,16 +1,17 @@
 import { Button, DropdownMenu, Flexbox, Icon, Text } from '@lobehub/ui';
+import { GithubIcon } from '@lobehub/ui/icons';
 import { ChevronDown, FileArchive, Grid2x2Plus, Link, PenLine } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import DevModal from '@/features/PluginDevModal';
-import { useAgentStore } from '@/store/agent';
-import { useToolStore } from '@/store/tool';
+import { CustomConnectorModal } from '@/features/Connectors';
+import { usePermission } from '@/hooks/usePermission';
 import { useUserStore } from '@/store/user';
-import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
+import { userProfileSelectors } from '@/store/user/selectors';
 
-import ImportFromUrlModal from './ImportFromUrlModal';
-import UploadSkillModal from './UploadSkillModal';
+import { openImportFromGithubModal } from './ImportFromGithubModal';
+import { openImportFromUrlModal } from './ImportFromUrlModal';
+import { openUploadSkillModal } from './UploadSkillModal';
 
 const MenuLabel = ({ desc, title }: { desc: string; title: ReactNode }) => (
   <Flexbox gap={2}>
@@ -23,16 +24,12 @@ const MenuLabel = ({ desc, title }: { desc: string; title: ReactNode }) => (
 
 const AddSkillButton = () => {
   const { t } = useTranslation('setting');
-  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
   const [showMcpModal, setMcpModal] = useState(false);
-  const [showUrlModal, setUrlModal] = useState(false);
-  const [showUploadModal, setUploadModal] = useState(false);
+  const { allowed: canCreate } = usePermission('create_content');
+  const { allowed: canEdit } = usePermission('edit_own_content');
+  const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 
-  const [installCustomPlugin, updateNewDevPlugin] = useToolStore((s) => [
-    s.installCustomPlugin,
-    s.updateNewCustomPlugin,
-  ]);
-  const togglePlugin = useAgentStore((s) => s.togglePlugin);
+  if (!isAdmin) return null;
 
   return (
     <div
@@ -40,51 +37,57 @@ const AddSkillButton = () => {
         e.stopPropagation();
       }}
     >
-      {isAdmin && (
-        <DevModal
-          open={showMcpModal}
-          onOpenChange={setMcpModal}
-          onValueChange={updateNewDevPlugin}
-          onSave={async (devPlugin) => {
-            await installCustomPlugin(devPlugin);
-            await togglePlugin(devPlugin.identifier);
-          }}
-        />
-      )}
-      <ImportFromUrlModal open={showUrlModal} onOpenChange={setUrlModal} />
-      <UploadSkillModal open={showUploadModal} onOpenChange={setUploadModal} />
+      <CustomConnectorModal open={showMcpModal} onClose={() => setMcpModal(false)} />
       <DropdownMenu
         nativeButton={false}
         placement="bottomRight"
         items={[
           {
+            disabled: !canCreate,
             icon: <Icon icon={Link} />,
             key: 'importUrl',
             label: <MenuLabel desc={t('tab.importFromUrl.desc')} title={t('tab.importFromUrl')} />,
-            onClick: () => isAdmin && setUrlModal(true),
+            onClick: () => {
+              if (!canCreate) return;
+              openImportFromUrlModal();
+            },
           },
           {
+            disabled: !canCreate,
+            icon: <Icon icon={GithubIcon} />,
+            key: 'importGithub',
+            label: (
+              <MenuLabel desc={t('tab.importFromGithub.desc')} title={t('tab.importFromGithub')} />
+            ),
+            onClick: () => {
+              if (!canCreate) return;
+              openImportFromGithubModal();
+            },
+          },
+          {
+            disabled: !canCreate,
             icon: <Icon icon={FileArchive} />,
             key: 'uploadZip',
             label: <MenuLabel desc={t('tab.uploadZip.desc')} title={t('tab.uploadZip')} />,
-            onClick: () => isAdmin && setUploadModal(true),
+            onClick: () => {
+              if (!canCreate) return;
+              openUploadSkillModal();
+            },
           },
-          ...(isAdmin
-            ? [
-                { type: 'divider' as const },
-                {
-                  icon: <Icon icon={PenLine} />,
-                  key: 'customMcp',
-                  label: (
-                    <MenuLabel desc={t('tab.addCustomMcp.desc')} title={t('tab.addCustomMcp')} />
-                  ),
-                  onClick: () => setMcpModal(true),
-                },
-              ]
-            : []),
+          { type: 'divider' as const },
+          {
+            disabled: !canCreate || !canEdit,
+            icon: <Icon icon={PenLine} />,
+            key: 'customMcp',
+            label: <MenuLabel desc={t('tab.addCustomMcp.desc')} title={t('tab.addCustomMcp')} />,
+            onClick: () => {
+              if (!canCreate || !canEdit) return;
+              setMcpModal(true);
+            },
+          },
         ]}
       >
-        <Button icon={Grid2x2Plus}>
+        <Button disabled={!canCreate} icon={Grid2x2Plus}>
           {t('tab.addCustomSkill')}
           <Icon icon={ChevronDown} size={14} />
         </Button>

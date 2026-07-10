@@ -54,16 +54,17 @@ describe('useMenu', () => {
 
     act(() => {
       const { mainItems, logoutItems } = result.current;
-      // 'setting' and 'memory' are shown when logged in
+      // 'setting' is shown when logged in
       expect(mainItems?.some((item) => item?.key === 'setting')).toBe(true);
-      expect(mainItems?.some((item) => item?.key === 'memory')).toBe(true);
-      expect(mainItems?.some((item) => item?.key === 'get-desktop-app')).toBe(true);
+      // 'memory' is gated behind the showMemory nav-layout flag (defaults off)
+      expect(mainItems?.some((item) => item?.key === 'memory')).toBe(false);
+      expect(mainItems?.some((item) => item?.key === 'get-app')).toBe(true);
       // 'logout' is shown when isLoginWithAuth is true
       expect(logoutItems.some((item) => item?.key === 'logout')).toBe(true);
     });
   });
 
-  it('should show memory but hide admin-only menu items when regular user is logged in with auth', () => {
+  it('should hide admin-only menu items when regular user is logged in with auth', () => {
     act(() => {
       useUserStore.setState({ isSignedIn: true, user: { role: 'user' } as any });
     });
@@ -73,8 +74,8 @@ describe('useMenu', () => {
     act(() => {
       const { mainItems, logoutItems } = result.current;
       expect(mainItems?.some((item) => item?.key === 'setting')).toBe(true);
-      expect(mainItems?.some((item) => item?.key === 'memory')).toBe(true);
-      expect(mainItems?.some((item) => item?.key === 'get-desktop-app')).toBe(false);
+      expect(mainItems?.some((item) => item?.key === 'memory')).toBe(false);
+      expect(mainItems?.some((item) => item?.key === 'get-app')).toBe(false);
       expect(logoutItems.some((item) => item?.key === 'logout')).toBe(true);
     });
   });

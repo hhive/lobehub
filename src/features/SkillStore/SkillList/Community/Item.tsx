@@ -6,22 +6,22 @@ import {
   DropdownMenu,
   Flexbox,
   Icon,
-  Modal,
   stopPropagation,
   Tag,
 } from '@lobehub/ui';
-import { confirmModal } from '@lobehub/ui/base-ui';
-import { Button } from 'antd';
+import { Button, confirmModal } from '@lobehub/ui/base-ui';
 import isEqual from 'fast-deep-equal';
 import { MoreVerticalIcon, Plus, Trash2 } from 'lucide-react';
 import React, { memo, Suspense, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import ImperativeModal from '@/components/ImperativeModal';
 import MCPTag from '@/components/Plugins/MCPTag';
 import PluginAvatar from '@/components/Plugins/PluginAvatar';
 import McpDetail from '@/features/MCP/MCPDetail';
 import McpDetailLoading from '@/features/MCP/MCPDetail/Loading';
 import MCPInstallProgress from '@/features/MCP/MCPInstallProgress';
+import { usePermission } from '@/hooks/usePermission';
 import { useMarketAuth } from '@/layout/AuthProvider/MarketAuth';
 import { useAgentStore } from '@/store/agent';
 import { agentSelectors } from '@/store/agent/selectors';
@@ -37,6 +37,8 @@ const Item = memo<DiscoverMcpItem & { showLobeHubTag?: boolean }>(
   const styles = itemStyles;
   const { t } = useTranslation('plugin');
   const [detailOpen, setDetailOpen] = useState(false);
+  const { allowed: canCreate } = usePermission('create_content');
+  const { allowed: canEdit } = usePermission('edit_own_content');
 
   const [installed, installing, installMCPPlugin, cancelInstallMCPPlugin, unInstallPlugin, plugin] =
     useToolStore((s) => [
@@ -62,6 +64,7 @@ const Item = memo<DiscoverMcpItem & { showLobeHubTag?: boolean }>(
   const isCloudMcp = !!((plugin as any)?.cloudEndPoint || (plugin as any)?.haveCloudEndpoint);
 
   const handleInstall = async () => {
+    if (!canCreate || !canEdit) return;
     if (isCloudMcp && !isAuthenticated) {
       try {
         await signIn('mcp');
@@ -90,10 +93,12 @@ const Item = memo<DiscoverMcpItem & { showLobeHubTag?: boolean }>(
           items={[
             {
               danger: true,
+              disabled: !canEdit,
               icon: <Icon icon={Trash2} />,
               key: 'uninstall',
               label: t('store.actions.uninstall'),
               onClick: () => {
+                if (!canEdit) return;
                 confirmModal({
                   okButtonProps: { danger: true },
                   onOk: async () => {
@@ -115,13 +120,20 @@ const Item = memo<DiscoverMcpItem & { showLobeHubTag?: boolean }>(
 
     if (installing) {
       return (
-        <Button size="small" variant={'filled'} onClick={handleCancel}>
+        <Button size="small" type="fill" onClick={handleCancel}>
           {t('store.actions.cancel')}
         </Button>
       );
     }
 
-    return <ActionIcon icon={Plus} title={t('store.actions.install')} onClick={handleInstall} />;
+    return (
+      <ActionIcon
+        disabled={!canCreate || !canEdit}
+        icon={Plus}
+        title={t('store.actions.install')}
+        onClick={handleInstall}
+      />
+    );
   };
 
   return (
@@ -156,7 +168,7 @@ const Item = memo<DiscoverMcpItem & { showLobeHubTag?: boolean }>(
           </Flexbox>
         )}
       </Flexbox>
-      <Modal
+      <ImperativeModal
         destroyOnHidden
         footer={null}
         open={detailOpen}
@@ -167,7 +179,7 @@ const Item = memo<DiscoverMcpItem & { showLobeHubTag?: boolean }>(
         <Suspense fallback={<McpDetailLoading />}>
           <McpDetail noSettings identifier={identifier} />
         </Suspense>
-      </Modal>
+      </ImperativeModal>
     </>
   );
   },

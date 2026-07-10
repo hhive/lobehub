@@ -12,6 +12,8 @@ export type RemoteAgentDeviceStatus =
   | 'platform-unavailable';
 
 interface UseRemoteAgentDeviceGuardOptions {
+  /** The conversation's agent — validate this agent's bound device, not the global active one. */
+  agentId: string;
   enabled?: boolean;
 }
 
@@ -21,13 +23,14 @@ interface UseRemoteAgentDeviceGuardResult {
 }
 
 /**
- * Checks whether the bound device is online and the agent platform is available.
- * Used in HeterogeneousChatInput to gate sending for openclaw / hermes agents.
+ * Checks whether the bound device is online and, for remote-only hetero
+ * platforms, whether that platform is available on the device. Used in
+ * HeterogeneousChatInput before device-dispatched hetero runs.
  */
 export const useRemoteAgentDeviceGuard = ({
+  agentId,
   enabled = true,
-}: UseRemoteAgentDeviceGuardOptions = {}): UseRemoteAgentDeviceGuardResult => {
-  const agentId = useAgentStore((s) => s.activeAgentId);
+}: UseRemoteAgentDeviceGuardOptions): UseRemoteAgentDeviceGuardResult => {
   const agencyConfig = useAgentStore((s) =>
     agentId ? s.agentMap[agentId]?.agencyConfig : undefined,
   );

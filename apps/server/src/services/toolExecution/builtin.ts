@@ -1,9 +1,10 @@
+import { builtinTools } from '@lobechat/builtin-tools';
 import { type LobeChatDatabase } from '@lobechat/database';
 import { type ChatToolPayload } from '@lobechat/types';
 import { detectTruncatedJSON, safeParseJSON } from '@lobechat/utils';
 import debug from 'debug';
 
-import { KlavisService } from '@/server/services/klavis';
+import { ComposioService } from '@/server/services/composio';
 import { MarketService } from '@/server/services/market';
 
 import { getServerRuntime, hasServerRuntime } from './serverRuntimes';
@@ -11,13 +12,44 @@ import { type IToolExecutor, type ToolExecutionContext, type ToolExecutionResult
 
 const log = debug('lobe-server:builtin-tools-executor');
 
+/**
+ * Declared API names for a builtin tool, read from its manifest — the
+ * authoritative source. Runtime instances declare their APIs as prototype
+ * methods (`async sendMessage() {}`), which `Object.keys` cannot see, so the
+ * manifest, not the instance, is the correct source for a recovery hint.
+ */
+const getManifestApiNames = (identifier: string): string[] =>
+  (builtinTools.find((tool) => tool.identifier === identifier)?.manifest?.api ?? []).map(
+    (api) => api.name,
+  );
+
+/**
+ * Fallback when a manifest isn't available (e.g. a runtime registered without a
+ * matching manifest entry): collect callable names across the whole prototype
+ * chain — both own arrow-field methods and class prototype methods — which
+ * `Object.keys` alone would miss.
+ */
+const collectRuntimeApiNames = (runtime: Record<string, any>): string[] => {
+  const names = new Set<string>();
+  for (
+    let cur: object | null = runtime;
+    cur && cur !== Object.prototype;
+    cur = Object.getPrototypeOf(cur)
+  ) {
+    for (const key of Object.getOwnPropertyNames(cur)) {
+      if (key !== 'constructor' && typeof runtime[key] === 'function') names.add(key);
+    }
+  }
+  return [...names];
+};
+
 export class BuiltinToolsExecutor implements IToolExecutor {
   private marketService: MarketService;
-  private klavisService: KlavisService;
+  private composioService: ComposioService;
 
   constructor(db: LobeChatDatabase, userId: string) {
     this.marketService = new MarketService({ userInfo: { userId } });
-    this.klavisService = new KlavisService({ db, userId });
+    this.composioService = new ComposioService({ db, userId });
   }
 
   async execute(
@@ -78,13 +110,12 @@ export class BuiltinToolsExecutor implements IToolExecutor {
       });
     }
 
-    // Route Klavis tools to KlavisService
-    if (source === 'klavis') {
-      return this.klavisService.executeKlavisTool({
+    // Route Composio tools to ComposioService
+    if (source === 'composio') {
+      return this.composioService.executeComposioTool({
         args,
         identifier,
-        toolName: apiName,
-        workspaceId: context.workspaceId,
+        toolSlug: apiName,
       });
     }
 
@@ -96,8 +127,31 @@ export class BuiltinToolsExecutor implements IToolExecutor {
     // Await runtime in case factory is async
     const runtime = await getServerRuntime(identifier, context);
 
-    if (!runtime[apiName]) {
-      throw new Error(`Builtin tool ${identifier}'s ${apiName} is not implemented`);
+    if (typeof runtime[apiName] !== 'function') {
+      // An unknown apiName is almost always a model hallucination (calling an
+      // API that the tool never declared in its manifest). Return a structured,
+      // recoverable error listing the tool's real APIs instead of throwing a
+      // hard error the model cannot act on. The throw here also sits outside
+      // the try/catch below, so it would otherwise surface as an uncaught
+      // failure rather than a tool result.
+      //
+      // Prefer the manifest's declared API names; most runtimes declare their
+      // APIs as prototype methods that `Object.keys(runtime)` cannot see, which
+      // would collapse the hint to an empty list. Fall back to a prototype-chain
+      // walk only when no manifest is available.
+      const manifestApis = getManifestApiNames(identifier);
+      const availableApis =
+        manifestApis.length > 0 ? manifestApis : collectRuntimeApiNames(runtime);
+      const message =
+        `Builtin tool "${identifier}" has no API named "${apiName}". ` +
+        `Available APIs: ${availableApis.join(', ')}. ` +
+        `Do not call APIs that are not listed above.`;
+      log('Unknown apiName for %s: %s (available: %o)', identifier, apiName, availableApis);
+      return {
+        content: message,
+        error: { code: 'UNKNOWN_API', message },
+        success: false,
+      };
     }
 
     try {

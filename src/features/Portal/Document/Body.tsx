@@ -11,14 +11,13 @@ import { useTranslation } from 'react-i18next';
 
 import CodeEditorPane from '@/components/CodeEditorPane';
 import FloatingChatPanel from '@/features/FloatingChatPanel';
+import { useDocumentChatTopic } from '@/features/FloatingChatPanel/useDocumentChatTopic';
+import WideScreenContainer from '@/features/WideScreenContainer';
 import { useClientDataSWR } from '@/libs/swr';
+import { portalKeys } from '@/libs/swr/keys';
 import { documentService } from '@/services/document';
 import { useAgentStore } from '@/store/agent';
-import { useChatStore } from '@/store/chat';
-import { chatPortalSelectors } from '@/store/chat/selectors';
 import { useDocumentStore } from '@/store/document';
-import { useUserStore } from '@/store/user';
-import { labPreferSelectors } from '@/store/user/selectors';
 import { getDocumentRenderMode } from '@/utils/documentRenderMode';
 import {
   getSkillMarkdownMetadataError,
@@ -26,6 +25,11 @@ import {
   parseSkillMarkdownMetadata,
 } from '@/utils/skillMarkdown';
 
+import {
+  useDocumentViewFullPage,
+  useResolvedAgentDocumentId,
+  useResolvedDocumentId,
+} from './documentViewContext';
 import EditorCanvas from './EditorCanvas';
 import TodoList from './TodoList';
 
@@ -34,6 +38,11 @@ const styles = createStaticStyles(({ css }) => ({
     overflow: auto;
     flex: 1;
     padding-inline: 16px;
+  `,
+  contentFull: css`
+    /* Width is handled by WideScreenContainer; keep only the scroll host. */
+    overflow: auto;
+    flex: 1;
   `,
   frontmatter: css`
     margin-block: 16px 12px;
@@ -309,13 +318,19 @@ const HighlightEditor = memo<HighlightEditorProps>(({ content, documentId, langu
 HighlightEditor.displayName = 'HighlightEditor';
 
 const DocumentBody = memo(() => {
-  const documentId = useChatStore(chatPortalSelectors.portalDocumentId);
-  const agentDocumentId = useChatStore(chatPortalSelectors.portalAgentDocumentId);
+  const documentId = useResolvedDocumentId();
+  const agentDocumentId = useResolvedAgentDocumentId();
+  const fullPage = useDocumentViewFullPage();
   const activeAgentId = useAgentStore((s) => s.activeAgentId);
-  const activeTopicId = useChatStore((s) => s.activeTopicId);
-  const enableFloatingChatPanel = useUserStore(
-    labPreferSelectors.enableAgentDocumentFloatingChatPanel,
-  );
+  // `agentDocumentId` is what marks this as an *agent* document: only the agent-doc
+  // openers pass it. The notebook opens plain topic documents with the id alone, and
+  // `getOrCreateChatTopic` throws NOT_FOUND on those (no `agent_documents` row), so
+  // the panel — and its topic lookup — must stay out of the way there.
+  const panelEligible = !fullPage && !!activeAgentId && !!documentId && !!agentDocumentId;
+  const { topicId: docChatTopicId } = useDocumentChatTopic({
+    agentId: panelEligible ? activeAgentId : undefined,
+    documentId: panelEligible ? documentId : undefined,
+  });
   const [skillFrontmatter, contentFormat] = useDocumentStore((s) =>
     documentId
       ? [s.documents[documentId]?.skillFrontmatter ?? '', s.documents[documentId]?.contentFormat]
@@ -324,7 +339,7 @@ const DocumentBody = memo(() => {
   const isSkillMarkdown = contentFormat === 'skillMarkdown';
 
   const { data: documentMeta, mutate: mutateDocumentMeta } = useClientDataSWR(
-    documentId ? ['portal-document-header', documentId] : null,
+    documentId ? portalKeys.documentHeader(documentId) : null,
     () => documentService.getDocumentById(documentId!),
   );
   const renderMode = documentMeta
@@ -340,32 +355,42 @@ const DocumentBody = memo(() => {
     [mutateDocumentMeta],
   );
 
+  const editorContent = (
+    <>
+      {documentId && isSkillMarkdown && (
+        <SkillFrontmatterBlock documentId={documentId} frontmatter={skillFrontmatter} />
+      )}
+      {renderMode.mode === 'highlight' && documentId ? (
+        <HighlightEditor
+          content={documentMeta?.content ?? ''}
+          documentId={documentId}
+          key={documentId}
+          language={renderMode.language}
+          onSaved={handleHighlightSaved}
+        />
+      ) : (
+        <EditorCanvas />
+      )}
+    </>
+  );
+
   return (
     <Flexbox flex={1} height={'100%'} style={{ overflow: 'hidden' }}>
-      <div className={styles.content}>
-        {documentId && isSkillMarkdown && (
-          <SkillFrontmatterBlock documentId={documentId} frontmatter={skillFrontmatter} />
-        )}
-        {renderMode.mode === 'highlight' && documentId ? (
-          <HighlightEditor
-            content={documentMeta?.content ?? ''}
-            documentId={documentId}
-            key={documentId}
-            language={renderMode.language}
-            onSaved={handleHighlightSaved}
-          />
-        ) : (
-          <EditorCanvas />
-        )}
+      <div className={fullPage ? styles.contentFull : styles.content}>
+        {fullPage ? <WideScreenContainer>{editorContent}</WideScreenContainer> : editorContent}
       </div>
       <TodoList />
-      {enableFloatingChatPanel && activeAgentId && (
+      {/* The full-page route hosts its own panel through `AgentDocumentPage`, so
+          the in-portal panel only renders for the compact view. Both call sites
+          drive a doc-anchored chat topic via `useDocumentChatTopic`, so the panel
+          renders once that topic id resolves. */}
+      {panelEligible && docChatTopicId && (
         <FloatingChatPanel
           agentDocumentId={agentDocumentId}
           agentId={activeAgentId}
           documentId={documentId ?? undefined}
-          key={`${activeAgentId}:${activeTopicId ?? 'none'}:${documentId ?? 'none'}`}
-          topicId={activeTopicId ?? null}
+          key={`${activeAgentId}:${docChatTopicId}:${documentId ?? 'none'}`}
+          topicId={docChatTopicId}
         />
       )}
     </Flexbox>

@@ -6,7 +6,8 @@ import { createStaticStyles } from 'antd-style';
 import { ImageIcon, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+
+import { useWorkspaceAwareNavigate } from '@/features/Workspace/useWorkspaceAwareNavigate';
 
 import { useUserStore } from '@/store/user';
 import { userProfileSelectors } from '@/store/user/slices/auth/selectors';
@@ -36,7 +37,7 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
 const GenerationMediaModeSegment = memo<GenerationMediaModeSegmentProps>(
   ({ mode, layout = 'toolbar' }) => {
     const { t } = useTranslation('common');
-    const navigate = useNavigate();
+    const navigate = useWorkspaceAwareNavigate();
     const isHero = layout === 'hero';
     const isAdmin = useUserStore((s) => userProfileSelectors.isAdmin(s));
 

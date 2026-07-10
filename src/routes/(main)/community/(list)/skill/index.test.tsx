@@ -5,7 +5,7 @@ import SkillPage from './index';
 
 let isAdmin = false;
 
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
 }));
 
@@ -19,7 +19,7 @@ vi.mock('@/store/discover', () => ({
       useFetchSkillList: () => ({
         data: {
           currentPage: 1,
-          items: [],
+          items: [{ identifier: 'skill-1' }],
           pageSize: 21,
           totalCount: 0,
         },

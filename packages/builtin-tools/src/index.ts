@@ -15,7 +15,7 @@ import { CredsManifest } from '@lobechat/builtin-tool-creds';
 import { GroupAgentBuilderManifest } from '@lobechat/builtin-tool-group-agent-builder';
 import { GroupManagementManifest } from '@lobechat/builtin-tool-group-management';
 import { KnowledgeBaseManifest } from '@lobechat/builtin-tool-knowledge-base';
-import { LobeAgentManifest } from '@lobechat/builtin-tool-lobe-agent';
+import { LobeAgentManifest, resolveLobeAgentManifest } from '@lobechat/builtin-tool-lobe-agent';
 import { LobeDeliveryCheckerManifest } from '@lobechat/builtin-tool-lobe-delivery-checker';
 import { LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
 import { MemoryManifest } from '@lobechat/builtin-tool-memory';
@@ -25,14 +25,14 @@ import { RemoteDeviceManifest } from '@lobechat/builtin-tool-remote-device';
 import { selfFeedbackIntentManifest } from '@lobechat/builtin-tool-self-iteration';
 import { SkillMaintainerManifest } from '@lobechat/builtin-tool-skill-maintainer';
 import { SkillStoreManifest } from '@lobechat/builtin-tool-skill-store';
-import { SkillsManifest } from '@lobechat/builtin-tool-skills';
+import { resolveSkillsManifest, SkillsManifest } from '@lobechat/builtin-tool-skills';
 import { TaskManifest } from '@lobechat/builtin-tool-task';
 import { TopicReferenceManifest } from '@lobechat/builtin-tool-topic-reference';
 import { UserInteractionManifest } from '@lobechat/builtin-tool-user-interaction';
 import { VerifyToolManifest } from '@lobechat/builtin-tool-verify';
 import { WebBrowsingManifest } from '@lobechat/builtin-tool-web-browsing';
 import { WebOnboardingManifest } from '@lobechat/builtin-tool-web-onboarding';
-import { isDesktop, RECOMMENDED_SKILLS } from '@lobechat/const';
+import { isDesktop, RECOMMENDED_SKILLS, RecommendedSkillType } from '@lobechat/const';
 import { type LobeBuiltinTool } from '@lobechat/types';
 
 /**
@@ -105,6 +105,27 @@ export const chatModeAllowedToolIds = [
 ];
 
 /**
+ * Tool IDs that make up the group supervisor's orchestration toolset:
+ * dispatching members (speak / broadcast / delegate / executeAgentTask).
+ *
+ * These ship only with the builtin `group-supervisor` agent, but a group can
+ * run a user's own agent as supervisor (`execGroupAgent` passes the configured
+ * supervisor agentId, not the builtin slug). Such a run is verified as the
+ * group's supervisor, and the tools engine uses this list — the single source
+ * of truth — to both add these tools to the agent-mode candidate set and enable
+ * them. Without it the supervisor has no way to dispatch members and degrades
+ * to a single-agent monologue.
+ *
+ * NOTE: `lobe-group-agent-builder` (member CRUD: searchAgent / inviteAgent /
+ * createAgent) is deliberately excluded — it has no server runtime registered
+ * (`apps/server/.../serverRuntimes`), so advertising it on a server-side
+ * supervisor run would throw `Builtin tool "lobe-group-agent-builder" is not
+ * implemented` the moment the model called it. Add it back here once a server
+ * runtime exists.
+ */
+export const groupSupervisorToolIds = [GroupManagementManifest.identifier];
+
+/**
  * Tool IDs whose enabled state is decided by runtime / system conditions
  * (e.g. cloud runtime, agent has documents attached, knowledge base configured,
  * desktop gateway available), NOT by the user's plugin selection.
@@ -136,7 +157,7 @@ export const workflowBuiltinIds = new Set([
   'requesting-code-review',
 ]);
 
-export const builtinTools: LobeBuiltinTool[] = [
+const builtinToolRegistry: LobeBuiltinTool[] = [
   {
     discoverable: false,
     hidden: true,
@@ -156,6 +177,10 @@ export const builtinTools: LobeBuiltinTool[] = [
     hidden: true,
     identifier: SkillsManifest.identifier,
     manifest: SkillsManifest,
+    // Context-aware: prefixes exec-class API descriptions with the run's
+    // actual execution environment (cloud sandbox as fallback / offline
+    // degradation), so the model never assumes they run on the user's machine.
+    resolveManifest: resolveSkillsManifest,
     type: 'builtin',
   },
   {
@@ -334,6 +359,8 @@ export const builtinTools: LobeBuiltinTool[] = [
     hidden: true,
     identifier: LobeAgentManifest.identifier,
     manifest: LobeAgentManifest,
+    // Context-aware: hides the `callSubAgent` API inside group / sub-agent runs.
+    resolveManifest: resolveLobeAgentManifest,
     type: 'builtin',
   },
   {
@@ -344,13 +371,35 @@ export const builtinTools: LobeBuiltinTool[] = [
 ];
 
 /**
+ * Hoist each tool's `manifest.meta` identity (title / avatar / description / tags)
+ * onto the top level, so context-free consumers (UI lists, discovery, settings,
+ * token estimation) read `tool.title` / `tool.avatar` directly instead of reaching
+ * into `manifest.meta`. This keeps identity stable and decoupled from `manifest`,
+ * which may be produced per-turn by a context-aware `resolveManifest`.
+ *
+ * Optional chaining is defensive: this runs at module load, and tests routinely
+ * mock individual builtin-tool packages (a stubbed manifest may lack `meta`). In
+ * production every builtin manifest has a `meta`, so the hoisted fields are real.
+ */
+export const builtinTools: LobeBuiltinTool[] = builtinToolRegistry.map((tool) => ({
+  ...tool,
+  avatar: tool.manifest?.meta?.avatar,
+  description: tool.manifest?.meta?.description,
+  tags: tool.manifest?.meta?.tags,
+  title: tool.manifest?.meta?.title,
+}));
+
+const recommendedBuiltinIds = new Set(
+  RECOMMENDED_SKILLS.filter((s) => s.type === RecommendedSkillType.Builtin).map((s) => s.id),
+);
+/**
  * Non-hidden builtin tools that should start in the Skill Store as uninstalled.
  * These tools default to uninstalled and must be explicitly installed by the user from the Skill Store.
  */
 export const defaultUninstalledBuiltinTools = builtinTools
   .filter(
     (t) =>
-      (!t.hidden && !RECOMMENDED_SKILLS.some((skill) => skill.id === t.identifier)) ||
+      (!t.hidden && !recommendedBuiltinIds.has(t.identifier)) ||
       workflowBuiltinIds.has(t.identifier),
   )
   .map((t) => t.identifier);

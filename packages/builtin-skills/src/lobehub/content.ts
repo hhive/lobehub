@@ -52,7 +52,7 @@ run commands.
 | \`lh doc\` | Document management (create, parse, organize) |
 | \`lh agent\` | Agent management (create, configure, run) |
 | \`lh search\` | Search local resources or the web |
-| \`lh gen\` | Content generation (text, image, video, TTS, ASR) |
+| \`lh gen\` | Explicit CLI generation and existing generation task administration |
 | \`lh message\` | Message management and search |
 | \`lh skill\` | Skill management (install, create, manage) |
 | \`lh model\` | AI model management |
@@ -81,15 +81,17 @@ lh kb create-doc <kbId> -t "Meeting Notes" -c "..."
 # Search messages
 lh message search "deployment issue"
 
-# Generate an image
-lh gen image "a sunset over mountains" -m dall-e-3
-
 # Run an agent
 lh agent run -a <agentId> -p "Summarize today's tasks"
 \`\`\`
 
 # Important Notes
 
+- For an ordinary request to generate or edit a final raster image, use the native
+  \`lobe-image-generation.generate_image\` tool. Do not query Market image models or
+  fall back to \`lh gen image\` while the native tool is available.
+- Use \`lh gen\` only when the user explicitly asks to operate the CLI or administer
+  an existing generation task. Video, TTS, and ASR CLI workflows remain available.
 - All commands support \`--json\` for machine-readable output
 - Use \`--yes\` to skip confirmation prompts on destructive operations
 - IDs can be found via \`list\` commands

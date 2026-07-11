@@ -7,7 +7,7 @@ export const ImageGenerationManifest: BuiltinToolManifest = {
   api: [
     {
       description:
-        'Generate or edit one image from a detailed visual prompt. Use only when the user explicitly requests image generation or editing.',
+        'Generate or edit one final raster image, such as a photo, raster illustration, painting, concept art, cover visual, product image, social media graphic, or requested PNG, JPEG, or WebP output. Use only when the user explicitly requests image generation or editing; do not use for HTML, React, SVG, charts, diagrams, interactive pages, image analysis, or prompt-only requests.',
       name: ImageGenerationApiName.generateImage,
       parameters: {
         additionalProperties: false,
@@ -40,7 +40,7 @@ export const ImageGenerationManifest: BuiltinToolManifest = {
     avatar: 'IMG',
     description: "Generate and edit images with the current user's server-side image provider",
     readme:
-      'Creates one image from a visual prompt and can use authorized workspace images as editing references. Provider credentials remain on the server.',
+      'Creates one final raster image from a visual prompt and can use authorized workspace images as editing references. Best suited to photos, raster illustrations, paintings, concept art, cover visuals, product images, and social media graphics. Provider credentials remain on the server.',
     title: 'Image Generation',
   },
   systemRole: systemPrompt,

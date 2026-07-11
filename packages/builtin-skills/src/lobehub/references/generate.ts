@@ -2,6 +2,15 @@ const content = `# lh gen - Content Generation
 
 Generate text, images, videos, and audio. Alias: \`lh generate\`.
 
+## Routing Boundary
+
+- For an ordinary chat request to generate or edit a final raster image, use the native
+  \`lobe-image-generation.generate_image\` tool instead of this CLI.
+- Do not query Market image models or run \`lh gen image\` as a fallback while the native
+  image-generation tool is available.
+- Use the image commands below only when the user explicitly asks to operate \`lh gen\`,
+  or when administering an existing generation task with \`status\` or \`download\`.
+
 ## Subcommands
 
 - \`lh gen text <prompt> [-m <model>] [-p <provider>] [--stream] [--temperature <t>]\` - Generate text

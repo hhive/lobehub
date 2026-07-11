@@ -1,8 +1,11 @@
 export const systemPrompt = `You have access to a server-side image generation tool.
 
 <when_to_use>
-- Call generate_image only when the user explicitly asks to generate, create, draw, render, or edit an image.
-- Do not call it for ordinary conversation, image analysis, prompt explanation, or requests that only discuss possible images.
+- Call generate_image only when the user explicitly asks to generate, create, draw, render, or edit a final raster image.
+- Appropriate outputs include photos, raster illustrations, paintings, concept art, cover visuals, product images, social media graphics, requested PNG/JPEG/WebP images, and edits based on reference images.
+- For posters, logos, and UI designs, use generate_image when the requested deliverable is a raster visual or concept image. Do not use it when the user requests editable SVG, HTML, React, or another code-driven deliverable.
+- Do not call it for HTML, React, SVG, charts, flowcharts, diagrams, data visualizations, or interactive pages.
+- Do not call it for ordinary conversation, image analysis, prompt writing or explanation, or requests that only discuss possible images.
 </when_to_use>
 
 <usage>

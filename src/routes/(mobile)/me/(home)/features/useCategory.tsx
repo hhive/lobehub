@@ -60,17 +60,19 @@ export const useCategory = () => {
     },
   ];
 
-  const getDesktopApp: CellProps[] = [
-    {
-      icon: Download,
-      key: 'get-desktop-app',
-      label: t('getDesktopApp'),
-      onClick: () => window.open(downloadUrl, '__blank'),
-    },
-    {
-      type: 'divider',
-    },
-  ];
+  const getDesktopApp: CellProps[] = isAdmin
+    ? [
+        {
+          icon: Download,
+          key: 'get-desktop-app',
+          label: t('getDesktopApp'),
+          onClick: () => window.open(downloadUrl, '__blank'),
+        },
+        {
+          type: 'divider',
+        },
+      ]
+    : [];
 
   const helps: CellProps[] = [
     showCloudPromotion && {
@@ -85,13 +87,13 @@ export const useCategory = () => {
       label: t('document'),
       onClick: () => window.open(DOCUMENTS, '__blank'),
     },
-    {
+    isAdmin && {
       icon: Feather,
       key: 'feedback',
       label: t('feedback'),
       onClick: () => window.open(FEEDBACK, '__blank'),
     },
-    {
+    isAdmin && {
       icon: FileClockIcon,
       key: 'changelog',
       label: t('changelog'),

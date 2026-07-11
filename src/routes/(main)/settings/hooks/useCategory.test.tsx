@@ -93,6 +93,7 @@ describe('settings useCategory', () => {
     expect(keys).not.toContain(SettingsTabs.ServiceModel);
     expect(keys).not.toContain(SettingsTabs.Creds);
     expect(keys).not.toContain(SettingsTabs.Messenger);
+    expect(keys).not.toContain(SettingsTabs.Devices);
     expect(keys).not.toContain(SettingsTabs.Storage);
     expect(keys).not.toContain(SettingsTabs.Advanced);
     expect(keys).not.toContain(SettingsTabs.About);
@@ -107,6 +108,7 @@ describe('settings useCategory', () => {
     expect(keys).toContain(SettingsTabs.ServiceModel);
     expect(keys).toContain(SettingsTabs.Creds);
     expect(keys).toContain(SettingsTabs.Messenger);
+    expect(keys).toContain(SettingsTabs.Devices);
     expect(keys).toContain(SettingsTabs.Storage);
     expect(keys).toContain(SettingsTabs.Advanced);
     expect(keys).toContain(SettingsTabs.About);

@@ -14,6 +14,10 @@ import { CloudSandboxManifest } from '@lobechat/builtin-tool-cloud-sandbox';
 import { CredsManifest } from '@lobechat/builtin-tool-creds';
 import { GroupAgentBuilderManifest } from '@lobechat/builtin-tool-group-agent-builder';
 import { GroupManagementManifest } from '@lobechat/builtin-tool-group-management';
+import {
+  ImageGenerationIdentifier,
+  ImageGenerationManifest,
+} from '@lobechat/builtin-tool-image-generation';
 import { KnowledgeBaseManifest } from '@lobechat/builtin-tool-knowledge-base';
 import { LobeAgentManifest, resolveLobeAgentManifest } from '@lobechat/builtin-tool-lobe-agent';
 import { LobeDeliveryCheckerManifest } from '@lobechat/builtin-tool-lobe-delivery-checker';
@@ -43,6 +47,7 @@ export const defaultToolIds = [
   LobeActivatorManifest.identifier,
   SkillsManifest.identifier,
   SkillStoreManifest.identifier,
+  ImageGenerationIdentifier,
   WebBrowsingManifest.identifier,
   KnowledgeBaseManifest.identifier,
   MemoryManifest.identifier,
@@ -145,6 +150,7 @@ export const runtimeManagedToolIds = [
   LocalSystemManifest.identifier,
   MemoryManifest.identifier,
   RemoteDeviceManifest.identifier,
+  ImageGenerationIdentifier,
   LobeAgentManifest.identifier,
   WebBrowsingManifest.identifier,
 ];
@@ -270,6 +276,13 @@ const builtinToolRegistry: LobeBuiltinTool[] = [
     hidden: true,
     identifier: KnowledgeBaseManifest.identifier,
     manifest: KnowledgeBaseManifest,
+    type: 'builtin',
+  },
+  {
+    discoverable: false,
+    hidden: true,
+    identifier: ImageGenerationIdentifier,
+    manifest: ImageGenerationManifest,
     type: 'builtin',
   },
   {

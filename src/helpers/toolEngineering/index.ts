@@ -2,6 +2,7 @@
  * Tools Engineering - Unified tools processing using ToolsEngine
  */
 import { CloudSandboxManifest } from '@lobechat/builtin-tool-cloud-sandbox';
+import { ImageGenerationIdentifier } from '@lobechat/builtin-tool-image-generation';
 import { KnowledgeBaseManifest } from '@lobechat/builtin-tool-knowledge-base';
 import { LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
 import { MemoryManifest } from '@lobechat/builtin-tool-memory';
@@ -22,6 +23,7 @@ import { isToolAvailableInCurrentEnv } from '@/helpers/toolAvailability';
 import { patchManifestWithPermissions } from '@/libs/mcp/patchManifestPermissions';
 import { getAgentStoreState } from '@/store/agent';
 import { agentChatConfigSelectors, agentSelectors } from '@/store/agent/selectors';
+import { aiProviderSelectors, getAiInfraStoreState } from '@/store/aiInfra';
 import { getToolStoreState } from '@/store/tool';
 import {
   composioStoreSelectors,
@@ -225,9 +227,25 @@ export const createAgentToolsEngine = (
     agentChatConfigSelectors.currentChatConfig(agentState).memory?.enabled ??
     settingsSelectors.memoryEnabled(useUserStore.getState());
   const webBrowsingEnabled = searchConfig.useApplicationBuiltinSearchTool;
+  const aiInfraState = getAiInfraStoreState();
+  const openAIConfig = aiProviderSelectors.providerConfigById('openai')(aiInfraState);
+  const configuredImageModel = openAIConfig?.config?.sub2apiImageModel;
+  const imageGenerationEnabled =
+    workingModel.provider === 'openai' &&
+    aiProviderSelectors.isProviderEnabled('openai')(aiInfraState) &&
+    openAIConfig?.config?.sub2apiOnlyModels === true &&
+    !!configuredImageModel &&
+    aiProviderSelectors
+      .enabledImageModelList(aiInfraState)
+      .some(
+        (provider) =>
+          provider.id === 'openai' &&
+          provider.children.some((model) => model.id === configuredImageModel),
+      );
 
   const chatModeRules = {
     [KnowledgeBaseManifest.identifier]: kbEnabled,
+    [ImageGenerationIdentifier]: imageGenerationEnabled,
     [MemoryManifest.identifier]: memoryEnabled,
     [WebBrowsingManifest.identifier]: webBrowsingEnabled,
   };
@@ -242,6 +260,7 @@ export const createAgentToolsEngine = (
     ...Object.fromEntries(alwaysOnToolIds.map((id) => [id, true])),
     // System-level rules (may override user selection for specific tools)
     [CloudSandboxManifest.identifier]: agentChatConfigSelectors.isCloudSandboxEnabled(agentState),
+    [ImageGenerationIdentifier]: imageGenerationEnabled,
     [KnowledgeBaseManifest.identifier]: kbEnabled,
     [LocalSystemManifest.identifier]: agentChatConfigSelectors.isLocalSystemEnabled(agentState),
     [MemoryManifest.identifier]: memoryEnabled,
@@ -250,7 +269,9 @@ export const createAgentToolsEngine = (
 
   return createToolsEngine({
     defaultToolIds: isChatMode ? chatModeAllowedToolIds : defaultToolIds,
-    disabledPluginIds,
+    disabledPluginIds: imageGenerationEnabled
+      ? disabledPluginIds
+      : [...disabledPluginIds, ImageGenerationIdentifier],
     manifestContext,
     enableChecker: createEnableChecker({
       allowExplicitActivation: !isChatMode,

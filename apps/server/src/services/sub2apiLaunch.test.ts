@@ -337,13 +337,11 @@ describe('sub2apiLaunch helpers', () => {
 
   it('uses configured internal Sub2API base URL for model sync requests', async () => {
     process.env.SUB2API_INTERNAL_API_BASE_URL = 'http://127.0.0.1:8080';
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(JSON.stringify({ data: [{ id: 'gpt-5.5' }], object: 'list' }), {
-          status: 200,
-        }),
-      );
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: [{ id: 'gpt-5.5' }], object: 'list' }), {
+        status: 200,
+      }),
+    );
 
     await syncSub2APIModels('lobe-user-1', {
       api_base_url: 'https://xiaoni-ai.top',
@@ -374,10 +372,37 @@ describe('sub2apiLaunch helpers', () => {
     expect(mocks.updateConfig).toHaveBeenCalledWith(
       'openai',
       expect.objectContaining({
+        config: { sub2apiOnlyModels: true },
         keyVaults: expect.objectContaining({
           apiKey: 'sk-test',
           baseURL: 'http://127.0.0.1:8080/v1',
         }),
+      }),
+      mocks.encrypt,
+      expect.any(Function),
+    );
+  });
+
+  it('stores the Sub2API default image model in the OpenAI provider config', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: [{ id: 'gpt-5.5' }], object: 'list' }), { status: 200 }),
+    );
+
+    await upsertSub2APIOpenAIProvider('lobe-user-1', {
+      api_base_url: 'https://xiaoni-ai.top',
+      api_key: 'sk-test',
+      api_key_id: 1,
+      image_model_name: 'gpt-image-2',
+      user_id: 2,
+    });
+
+    expect(mocks.updateConfig).toHaveBeenCalledWith(
+      'openai',
+      expect.objectContaining({
+        config: {
+          sub2apiImageModel: 'gpt-image-2',
+          sub2apiOnlyModels: true,
+        },
       }),
       mocks.encrypt,
       expect.any(Function),
@@ -389,10 +414,7 @@ describe('sub2apiLaunch helpers', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
-          data: [
-            { id: 'gpt-image-1' },
-            { id: 'gpt-5.5' },
-          ],
+          data: [{ id: 'gpt-image-1' }, { id: 'gpt-5.5' }],
           object: 'list',
         }),
         { status: 200 },

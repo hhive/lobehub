@@ -26,6 +26,7 @@ export interface Sub2APIExchangePayload {
   api_key: string;
   api_key_id: number;
   email?: string;
+  image_model_name?: string;
   role?: string;
   user_id: number;
   username?: string;
@@ -346,7 +347,10 @@ export async function upsertSub2APIOpenAIProvider(userId: string, payload: Sub2A
   await providerModel.updateConfig(
     'openai',
     {
-      config: { sub2apiOnlyModels: true },
+      config: {
+        ...(payload.image_model_name && { sub2apiImageModel: payload.image_model_name }),
+        sub2apiOnlyModels: true,
+      },
       fetchOnClient: false,
       keyVaults: {
         apiKey: payload.api_key,
@@ -378,7 +382,11 @@ export async function upsertSub2APIOpenAIProvider(userId: string, payload: Sub2A
 export async function syncSub2APIModels(
   userId: string,
   payload: Sub2APIExchangePayload,
-): Promise<{ count: number; defaultChatModel?: { model: string; provider: string }; synced: boolean }> {
+): Promise<{
+  count: number;
+  defaultChatModel?: { model: string; provider: string };
+  synced: boolean;
+}> {
   try {
     const response = await fetch(buildSub2APIModelsURL(payload.api_base_url), {
       headers: { Authorization: `Bearer ${payload.api_key}` },

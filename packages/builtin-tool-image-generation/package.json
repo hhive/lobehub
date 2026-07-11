@@ -1,0 +1,23 @@
+{
+  "name": "@lobechat/builtin-tool-image-generation",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client/index.ts"
+  },
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "vitest",
+    "test:coverage": "vitest --coverage --silent='passed-only'"
+  },
+  "devDependencies": {
+    "@lobechat/types": "workspace:*"
+  },
+  "peerDependencies": {
+    "@lobehub/ui": "^5",
+    "antd-style": "*",
+    "lucide-react": "*",
+    "react": "*"
+  }
+}

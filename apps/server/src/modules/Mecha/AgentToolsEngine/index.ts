@@ -10,6 +10,7 @@
  * - No dependency on frontend stores (useToolStore, useAgentStore, etc.)
  */
 import { CloudSandboxManifest } from '@lobechat/builtin-tool-cloud-sandbox';
+import { ImageGenerationIdentifier } from '@lobechat/builtin-tool-image-generation';
 import { KnowledgeBaseManifest } from '@lobechat/builtin-tool-knowledge-base';
 import { LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
 import { MemoryManifest } from '@lobechat/builtin-tool-memory';
@@ -209,6 +210,10 @@ export const createServerAgentToolsEngine = (
   const toolMode = resolveToolMode(agentConfig.chatConfig ?? undefined);
   const isChatMode = toolMode === 'chat';
   const isCustomMode = toolMode === 'custom';
+  // The execution runtime performs the authoritative DB-backed Sub2API provider/model check.
+  // This engine currently receives no provider configuration, so fail closed for non-OpenAI
+  // chats and let the runtime reject OpenAI users that are not actually Sub2API-bound.
+  const canAttemptImageGeneration = provider === 'openai';
 
   log(
     'Creating agent tools engine model=%s provider=%s searchMode=%s platform=%s runtimeMode=%s additionalManifests=%d hasDeviceProxy=%s canUseDevice=%s isChatMode=%s',
@@ -230,6 +235,7 @@ export const createServerAgentToolsEngine = (
   // activator can't smuggle anything else in.
   const chatModeRules = {
     [KnowledgeBaseManifest.identifier]: hasEnabledKnowledgeBases,
+    [ImageGenerationIdentifier]: canAttemptImageGeneration,
     [MemoryManifest.identifier]: globalMemoryEnabled,
     [WebBrowsingManifest.identifier]: isSearchEnabled,
   };
@@ -247,6 +253,7 @@ export const createServerAgentToolsEngine = (
     ...Object.fromEntries(alwaysOnToolIds.map((id) => [id, true])),
     // System-level rules (may override user selection for specific tools)
     [CloudSandboxManifest.identifier]: runtimeMode === 'cloud',
+    [ImageGenerationIdentifier]: canAttemptImageGeneration,
     [KnowledgeBaseManifest.identifier]: hasEnabledKnowledgeBases,
     // Local-system: the user must have opted into local runtime
     // (`runtimeMode === 'local'`) AND have an online, auto-activated device
@@ -309,11 +316,14 @@ export const createServerAgentToolsEngine = (
     // resolve them regardless of which manifest source declared them.
     // Locked turns exclude the remote-device picker only (local-system
     // stays for the routed device).
-    excludeIdentifiers: canUseDevice
-      ? deviceLocked
-        ? REMOTE_DEVICE_TOOL_IDENTIFIERS
-        : undefined
-      : DEVICE_TOOL_IDENTIFIERS,
+    excludeIdentifiers: new Set([
+      ...(!canUseDevice
+        ? DEVICE_TOOL_IDENTIFIERS
+        : deviceLocked
+          ? REMOTE_DEVICE_TOOL_IDENTIFIERS
+          : []),
+      ...(!canAttemptImageGeneration ? [ImageGenerationIdentifier] : []),
+    ]),
     // Conversation context for context-aware builtin manifests (scope /
     // isSubAgent), e.g. hiding lobe-agent's callSubAgent in sub-agent / group runs.
     manifestContext,

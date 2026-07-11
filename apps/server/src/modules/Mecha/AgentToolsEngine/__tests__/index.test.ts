@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { GroupAgentBuilderManifest } from '@lobechat/builtin-tool-group-agent-builder';
 import { GroupManagementManifest } from '@lobechat/builtin-tool-group-management';
+import { ImageGenerationIdentifier } from '@lobechat/builtin-tool-image-generation';
 import { KnowledgeBaseManifest } from '@lobechat/builtin-tool-knowledge-base';
 import { LobeAgentApiName, LobeAgentManifest } from '@lobechat/builtin-tool-lobe-agent';
 import { LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
@@ -195,6 +196,32 @@ describe('createServerAgentToolsEngine', () => {
     });
 
     expect(engine).toBeInstanceOf(ToolsEngine);
+  });
+
+  it('enables image generation by default for OpenAI chats', () => {
+    const engine = createServerAgentToolsEngine(createMockContext(), {
+      agentConfig: { plugins: [] },
+      model: 'gpt-5.5',
+      provider: 'openai',
+    });
+
+    const result = engine.generateToolsDetailed({
+      model: 'gpt-5.5',
+      provider: 'openai',
+      toolIds: [],
+    });
+
+    expect(result.enabledToolIds).toContain(ImageGenerationIdentifier);
+  });
+
+  it('physically excludes image generation for non-OpenAI chats', () => {
+    const engine = createServerAgentToolsEngine(createMockContext(), {
+      agentConfig: { plugins: [ImageGenerationIdentifier] },
+      model: 'deepseek-chat',
+      provider: 'deepseek',
+    });
+
+    expect(engine.getAvailablePlugins()).not.toContain(ImageGenerationIdentifier);
   });
 
   it('should filter LocalSystem tool on server', () => {

@@ -93,8 +93,47 @@ vi.mock('@/store/tool', () => ({
         } as unknown as ToolManifest,
         type: 'builtin' as const,
       },
+      {
+        hidden: true,
+        identifier: 'lobe-image-generation',
+        manifest: {
+          api: [
+            {
+              description: 'Generate an image',
+              name: 'generate_image',
+              parameters: {
+                properties: { prompt: { type: 'string' } },
+                required: ['prompt'],
+                type: 'object',
+              },
+            },
+          ],
+          identifier: 'lobe-image-generation',
+          meta: { title: 'Image generation' },
+          type: 'builtin',
+        } as unknown as ToolManifest,
+        type: 'builtin' as const,
+      },
     ],
   }),
+}));
+
+let mockSub2APIImageGenerationEnabled = false;
+
+vi.mock('@/store/aiInfra', () => ({
+  aiProviderSelectors: {
+    enabledImageModelList: () =>
+      mockSub2APIImageGenerationEnabled
+        ? [{ children: [{ id: 'gpt-image-2' }], id: 'openai' }]
+        : [],
+    isProviderEnabled: () => () => mockSub2APIImageGenerationEnabled,
+    providerConfigById: () => () => ({
+      config: mockSub2APIImageGenerationEnabled
+        ? { sub2apiImageModel: 'gpt-image-2', sub2apiOnlyModels: true }
+        : {},
+    }),
+  },
+  getAiInfraStoreState: () => ({}),
 }));
 
 let mockGetInstalledPluginById: (id: string) => () => any = () => () => undefined;
@@ -167,6 +206,7 @@ describe('toolEngineering', () => {
     mockUseApplicationBuiltinSearchTool = true;
     mockCurrentAgentPlugins = [];
     mockCurrentAgentDisabledPlugins = [];
+    mockSub2APIImageGenerationEnabled = false;
     mockIsCanUseFC = true;
   });
 
@@ -287,6 +327,25 @@ describe('toolEngineering', () => {
       });
 
       expect(result.enabledToolIds).toContain('lobe-agent');
+    });
+
+    it('enables image generation when the OpenAI provider is Sub2API-bound with its image model', () => {
+      mockSub2APIImageGenerationEnabled = true;
+
+      const toolsEngine = createAgentToolsEngine({ model: 'gpt-5.5', provider: 'openai' });
+      const result = toolsEngine.generateToolsDetailed({
+        model: 'gpt-5.5',
+        provider: 'openai',
+        toolIds: [],
+      });
+
+      expect(result.enabledToolIds).toContain('lobe-image-generation');
+    });
+
+    it('physically excludes image generation when Sub2API image configuration is unavailable', () => {
+      const toolsEngine = createAgentToolsEngine({ model: 'gpt-5.5', provider: 'openai' });
+
+      expect(toolsEngine.getAvailablePlugins()).not.toContain('lobe-image-generation');
     });
 
     it('should use chat-mode defaults when the model does not support function calling', () => {

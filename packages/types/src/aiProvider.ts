@@ -243,6 +243,7 @@ const AiProviderSettingsSchema = z.object({
 
 export interface AiProviderConfig {
   enableResponseApi?: boolean;
+  sub2apiImageModel?: string;
   sub2apiOnlyModels?: boolean;
 }
 
@@ -347,6 +348,7 @@ export const UpdateAiProviderConfigSchema = z.object({
   config: z
     .object({
       enableResponseApi: z.boolean().optional(),
+      sub2apiImageModel: z.string().optional(),
       sub2apiOnlyModels: z.boolean().optional(),
     })
     .optional(),
